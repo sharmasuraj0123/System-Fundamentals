@@ -5,6 +5,16 @@
 
 #include "const.h"
 
+
+
+char valueOfLastdigits(char *alphabet, int n);
+
+int length(char *array);
+/**
+* return 0 if the strings are equal, 1 otherwise.
+*/
+int StringCompare(char* string1 , char* string2);
+
 /**
  * @brief Validates command line arguments passed to the program.
  * @details This function will validate all the arguments passed to the program
@@ -18,6 +28,9 @@
  * @return Refer to homework document for the return value of this function.
  */
 char validargs(int argc, char **argv, FILE **in, FILE **out);
+
+
+
 
 
 #define USAGE(retcode) do{                                                        \
