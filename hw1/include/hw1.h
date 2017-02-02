@@ -10,13 +10,21 @@
 int length(char *array);
 int encode();
 int decode();
+
+long stringToInt(char* string);
 /**
 * return 0 if the strings are equal, 1 otherwise.
 */
 int StringCompare(char* string1 , char* string2);
 
+/**
+*Return the position at which it is present in Alphabet Array
+*returns -1 if not present.
+*/
+int presentInAlphabet(char input);
+
 void substitutionCipher(char operation, FILE **in,
-						FILE **out, int nshiftAmount);
+						FILE **out, int shiftAmount);
 
 /**
  * @brief Validates command line arguments passed to the program.
