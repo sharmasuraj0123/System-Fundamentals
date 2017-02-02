@@ -1,6 +1,8 @@
 // DO NOT MODIFY THE CONTENTS OF THIS FILE IT WILL BE REPLACED DURING GRADING
 #include "const.h"
 
+#define N320 0x08
+
 /* This variable will be in this format/name, but the string it is initalized to
  * will be at most 31 characters. Any characters which do not appear in the alphabet
  * string should be preserved.

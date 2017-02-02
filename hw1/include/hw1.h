@@ -7,13 +7,16 @@
 
 
 
-char valueOfLastdigits(char *alphabet, int n);
-
 int length(char *array);
+int encode();
+int decode();
 /**
 * return 0 if the strings are equal, 1 otherwise.
 */
 int StringCompare(char* string1 , char* string2);
+
+void substitutionCipher(char operation, FILE **in,
+						FILE **out, int nshiftAmount);
 
 /**
  * @brief Validates command line arguments passed to the program.
