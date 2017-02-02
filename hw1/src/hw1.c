@@ -17,6 +17,14 @@ if(argc<=1){
 	 //Test for what's in argc and argv.
 	//printf("hello %d %s %p",argc ,*argv , argv);
 
+
+	if(StringCompare(*(argv+1),"-h")==0){
+		ret = 0x80;
+		printf("\n %d",ret);
+		USAGE(ret);
+		return ret;
+	}
+
 	//For file IO
 	if(StringCompare(*(argv+3),"-")==0){
 		*in = stdin;
@@ -32,16 +40,7 @@ if(argc<=1){
 	//FAILURE CASE FOR READING THE FILE
 	if(!(*in)){
 		USAGE(0);
-		return EXIT_FAILURE;
-	}
-
-
-
-	if(StringCompare(*(argv+1),"-h")==0){
-		ret = 0x80;
-		printf("\n %d",ret);
-		USAGE(ret);
-		return ret;
+		return 0;
 	}
 
 
@@ -67,6 +66,7 @@ if(argc<=1){
 		}
 		else{}
 
+		substitutionCipher('e',in,out,3);
 
 	}
 	if(StringCompare(*(argv+1),"-t")==0){
@@ -103,7 +103,6 @@ int StringCompare(char* string1 , char* string2){
 	return 0;
 }
 
-
 int length(char *array){
 	int count =0;
 	while(*(array+count)!= 0)
@@ -136,9 +135,27 @@ long stringToInt(char* string){
 
 void substitutionCipher(char operation, FILE **in,
 						FILE **out, int shiftAmount){
-if(operation == 'd')
-		shiftAmount = -shiftAmount;
 
+
+	if(operation == 'd')
+		shiftAmount = -shiftAmount;
+	printf("%d",shiftAmount);
+
+	char reader = 'a';
+	do{
+		reader= (char) fgetc(*in);
+		int position_in_array = presentInAlphabet(reader);
+
+
+		if(position_in_array != -1){
+
+			reader  = *(Alphabet + (position_in_array +
+								shiftAmount)%length(Alphabet));
+			printf("%c\n",reader);
+		}
+
+		fputc(reader,*out);
+	}while(reader !=EOF);
 
 
 
@@ -147,8 +164,11 @@ if(operation == 'd')
 
 int presentInAlphabet(char input){
 int sizeOfArray = (int)length(Alphabet);
-for(int i=0; i<sizeOfArray;i++)
-	if(*(Alphabet+i)==input)
+for(int i=0; i<sizeOfArray;i++){
+
+	if(*(Alphabet+i)==input){
 		return i;
-return 0;
+	}
+}
+return -1;
 }
