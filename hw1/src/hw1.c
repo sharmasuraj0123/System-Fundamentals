@@ -1,6 +1,6 @@
 #include "hw1.h"
 
-long n = 320;
+int n = 320;
 // For your helper functions (you may add additional files also)
 // DO NOT define a main function here!
 
@@ -49,24 +49,32 @@ if(argc<=1){
 		/* code here */
 		// FIX!!!!! it is only reading the first value of n.
 		if(argc>5){
-			printf("%c %s ", **(argv+5) , *(argv+5));
+
 			n = stringToInt(*(argv+5));
-			printf("%ld ",n);
+
 		}
 
 		ret = 0x40;
-		char lastDigits = n%length(Alphabet);
+		char lastDigits = (char) n%length(Alphabet);
+		//printf("%d \n",lastDigits);
+
 		ret+= lastDigits;
+
+		int shiftAmount = lastDigits;
+
 
 		if(StringCompare(*(argv+2),"-d")==0){
 			ret+= decode();
+
+			substitutionCipher('d',in,out,shiftAmount);
 		}
 		else if(StringCompare(*(argv+2),"-e")==0){
 			ret+= encode();
+			substitutionCipher('e',in,out,shiftAmount);
 		}
 		else{}
 
-		substitutionCipher('e',in,out,3);
+
 
 	}
 	if(StringCompare(*(argv+1),"-t")==0){
@@ -79,6 +87,7 @@ if(argc<=1){
 		}
 		else{}
 	}
+
 
 
 
@@ -119,13 +128,12 @@ int decode(){
 	return 0x20;
 }
 
-long stringToInt(char* string){
-	long num =0;
-
+int stringToInt(char* string){
+	int num =0;
 	for(int i =0; i< length(string); i++){
+		num *=10;
 		char character = *(string +i);
-		num = character - 48;
-		num = num<<4;
+		num += character - 48;
 	}
 
 
@@ -139,19 +147,28 @@ void substitutionCipher(char operation, FILE **in,
 
 	if(operation == 'd')
 		shiftAmount = -shiftAmount;
-	printf("%d",shiftAmount);
+
 
 	char reader = 'a';
 	do{
 		reader= (char) fgetc(*in);
+
+		if(reader >'a' && reader < 'z')
+			reader-= 32;
+
 		int position_in_array = presentInAlphabet(reader);
 
 
 		if(position_in_array != -1){
 
-			reader  = *(Alphabet + (position_in_array +
-								shiftAmount)%length(Alphabet));
-			printf("%c\n",reader);
+			int new_position = (position_in_array +
+								shiftAmount)%length(Alphabet);
+
+			if(new_position<0)
+				new_position += length(Alphabet);
+
+			reader  = *(Alphabet + new_position);
+
 		}
 
 		fputc(reader,*out);

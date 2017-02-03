@@ -11,7 +11,7 @@ int length(char *array);
 int encode();
 int decode();
 
-long stringToInt(char* string);
+int stringToInt(char* string);
 /**
 * return 0 if the strings are equal, 1 otherwise.
 */
