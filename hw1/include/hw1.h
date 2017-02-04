@@ -22,14 +22,17 @@ int length_of_2D_array(char** array);
 *returns -1 if not present.
 */
 int presentInAlphabet(char input);
-
-
+int isLowerCase(char a);
+int  isUpperCase(char a);
+char convertToLowerCase(char A);
+char convertToUpperCase(char a);
+int isVowel(char a);
 /*
 *Same as the above method just this time the array is 2D.
 */
 char* presentInTutnese(char input);
 
-int isVowel(char a);
+
 
 void substitutionCipher(char operation, FILE **in,
 						FILE **out, int shiftAmount);
@@ -37,8 +40,7 @@ void substitutionCipher(char operation, FILE **in,
 
 
 
-void tutneseEncryption( FILE **in,
-						FILE **out );
+void tutneseEncryption( FILE **in, FILE **out );
 void tutneseDecryption(FILE**in , FILE ** out);
 
 /**
