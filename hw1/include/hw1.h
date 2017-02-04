@@ -23,10 +23,13 @@ int length_of_2D_array(char** array);
 */
 int presentInAlphabet(char input);
 
+
 /*
 *Same as the above method just this time the array is 2D.
 */
 char* presentInTutnese(char input);
+
+int isVowel(char a);
 
 void substitutionCipher(char operation, FILE **in,
 						FILE **out, int shiftAmount);
@@ -34,8 +37,9 @@ void substitutionCipher(char operation, FILE **in,
 
 
 
-void tutneseEncryption(char operation, FILE **in,
+void tutneseEncryption( FILE **in,
 						FILE **out );
+void tutneseDecryption(FILE**in , FILE ** out);
 
 /**
  * @brief Validates command line arguments passed to the program.

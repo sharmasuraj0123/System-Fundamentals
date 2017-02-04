@@ -12,7 +12,7 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 			return EXIT_FAILURE;
 	}
 
-	printf("%s\n",presentInTutnese('b') );
+
 
 
 	 //Test for what's in argc and argv.
@@ -72,6 +72,7 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 		}
 		else if(StringCompare(*(argv+2),"-e")==0){
 			ret+= encode();
+			tutneseEncryption(in ,out);
 		}
 		else{}
 	}
@@ -163,6 +164,12 @@ int length_of_2D_array(char** array){
 	return count;
 }
 
+int isVowel(char a){
+	if (a=='a'||a== 'e'|| a== 'i'|| a== 'o'|| a== 'u')
+		return 0;
+	 return 1;
+}
+
 char* presentInTutnese(char input){
 
 	char *first_letter_in_array = *Tutnese;
@@ -184,14 +191,41 @@ char* presentInTutnese(char input){
 
 
 
-void tutneseEncryption(char operation, FILE **in,
-						FILE **out ){
+void tutneseEncryption(FILE **in, FILE **out){
 	char reader = 'a';
 	do{
 		reader= (char) fgetc(*in);
+		char reader_2 = (char)fgetc(*in);
+
+		if(reader != reader_2){
+			ungetc(reader_2,*in);
+			reader_2 =0;
+		}
+
+		char * encription = presentInTutnese(reader);
+
+			if(reader==reader_2){
+				fputs("squa",*out);
+				reader_2 = 0;
+
+				printf("%d %c\n ",isVowel(reader),reader);
+
+				if(isVowel(reader)==0){
+
+					fputc('t', *out);
+				}
+			}
+
+			if(StringCompare(encription,"not present")!=0&&
+										isVowel(reader)==1)
+				fputs(encription,*out);
 
 
-		fputc(reader,*out);
+		if(StringCompare(encription,"not present")==0 ||
+									isVowel(reader)==0)
+				fputc(reader,*out);
+
+
 	}while(reader != EOF);
 
 
