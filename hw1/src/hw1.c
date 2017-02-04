@@ -65,6 +65,7 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 
 		if(StringCompare(*(argv+2),"-d")==0){
 			ret+= decode();
+			tutneseDecryption(in, out);
 		}
 		else if(StringCompare(*(argv+2),"-e")==0){
 			ret+= encode();
@@ -190,12 +191,12 @@ char* presentInTutnese(char input){
 }
 
 int isLowerCase(char a){
-	if(a >='a' && a>='z')
+	if(a >='a' && a<='z')
 		return 0;
 	return 1;
 }
 int  isUpperCase(char a){
-	if(a >='A' && a>='Z')
+	if(a >='A' && a<='Z')
 		return 0;
 	return 1;
 }
@@ -215,7 +216,6 @@ void tutneseEncryption(FILE **in, FILE **out){
 	char reader = 'a';
 
 	do{
-
 		// lower case then 0 ; uppercase then 1
 		int case_of_reader = 0;
 		int case_of_reader_2 =0;
@@ -245,12 +245,9 @@ void tutneseEncryption(FILE **in, FILE **out){
 		char * encription = presentInTutnese(reader);
 
 			if(reader==reader_2){
-
 				if(case_of_reader==1){
-
 					fputs("Squa", *out);
 				}
-
 				else fputs("squa",*out);
 
 				if(isVowel(reader)==0)
@@ -283,6 +280,31 @@ void tutneseEncryption(FILE **in, FILE **out){
 }
 
 void tutneseDecryption(FILE**in , FILE ** out){
+	char reader ='a';
 
+	do{
+
+		 reader = (char)fgetc(*in);
+		 int case_of_reader= 0;
+
+		 if(isUpperCase(reader)==0){
+		 	reader = convertToLowerCase(reader);
+		 	case_of_reader =1;
+		 }
+		 printf("%c\n",reader );
+		char * encription = presentInTutnese(reader);
+
+		if(StringCompare(encription,"not present")!=0){
+
+			 for (int i =1; i<length(encription);i++){
+			 	printf("%s\n","lol" );
+			 	fgetc(*in);
+				}
+			}
+			if(case_of_reader==1)
+				reader = convertToUpperCase(reader);
+
+		 fputc(reader,*out);
+	}while(reader != EOF);
 
 }
