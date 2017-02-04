@@ -16,15 +16,26 @@ int stringToInt(char* string);
 * return 0 if the strings are equal, 1 otherwise.
 */
 int StringCompare(char* string1 , char* string2);
-
+int length_of_2D_array(char** array);
 /**
 *Return the position at which it is present in Alphabet Array
 *returns -1 if not present.
 */
 int presentInAlphabet(char input);
 
+/*
+*Same as the above method just this time the array is 2D.
+*/
+char* presentInTutnese(char input);
+
 void substitutionCipher(char operation, FILE **in,
 						FILE **out, int shiftAmount);
+
+
+
+
+void tutneseEncryption(char operation, FILE **in,
+						FILE **out );
 
 /**
  * @brief Validates command line arguments passed to the program.
