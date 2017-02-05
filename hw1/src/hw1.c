@@ -23,7 +23,16 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 
 	//For file IO
 	if(StringCompare(*(argv+3),"-")==0){
-		*in = stdin;
+		char r ='a';
+		*in = fopen("rsrc/input.txt", "w");
+		while(r!= EOF){
+			r=(char)getc(stdin);
+			fputc(r,*in);
+		}
+
+		fclose(*in);
+		*in = fopen("rsrc/input.txt", "r");
+
 	}
 	else if(StringCompare(*(argv+4),"-")==0){
 		*out = stdout;
@@ -291,13 +300,70 @@ void tutneseDecryption(FILE**in , FILE ** out){
 		 	reader = convertToLowerCase(reader);
 		 	case_of_reader =1;
 		 }
-		 printf("%c\n",reader );
+
+		 if(reader =='s'){
+		 	*buffer =reader;
+		 	for(int i =1; i<4;i++)
+		 		*(buffer+i) = fgetc(*in);
+
+		 	if(StringCompare(buffer,"squa")!=0){
+
+		 		for(int i =3; i>=1;i--){
+		 		 	ungetc(*(buffer+i),*in);
+		 		}
+			}
+			else{
+				int case_of_reader_2 =0;
+				reader = fgetc(*in);
+				if(isUpperCase(reader)==0){
+		 			reader = convertToLowerCase(reader);
+		 			case_of_reader_2 =1;
+		 	}
+		 		if (reader!='t'){
+		 			if(case_of_reader==1)
+		 				fputc(convertToUpperCase(reader),*out);
+		 			else fputc(reader,*out);
+		 				case_of_reader = case_of_reader_2;
+		 				case_of_reader_2= 0;
+		 		}
+		 		else{
+		 			char * encription = presentInTutnese(reader);
+		 			*buffer='t';
+		 			 for (int i =1; i<length(encription);i++){
+			 				*(buffer+i) =fgetc(*in);
+						}
+					if(StringCompare(encription,buffer)==0){
+						for(int i =length(encription); i>=1;i--){
+		 		 			ungetc(*(buffer+i),*in);
+						}
+						if(case_of_reader==1)
+		 					fputc(convertToUpperCase(reader),*out);
+		 				else fputc(reader,*out);
+		 					case_of_reader = case_of_reader_2;
+		 					case_of_reader_2= 0;
+		 			}
+		 			else{
+		 				for(int i =length(encription); i>=1;i--)
+		 		 			ungetc(*(buffer+i),*in);
+						reader = fgetc(*in);
+
+						if(case_of_reader==1)
+		 				fputc(convertToUpperCase(reader),*out);
+		 			else fputc(reader,*out);
+		 				case_of_reader = case_of_reader_2;
+		 				case_of_reader_2= 0;
+
+		 			}
+
+			}
+		 }
+		}
+
+
 		char * encription = presentInTutnese(reader);
 
 		if(StringCompare(encription,"not present")!=0){
-
 			 for (int i =1; i<length(encription);i++){
-			 	printf("%s\n","lol" );
 			 	fgetc(*in);
 				}
 			}
