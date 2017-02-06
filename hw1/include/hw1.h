@@ -3,6 +3,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+#include "info.h"
+
 #include "const.h"
 
 
@@ -17,6 +19,7 @@ int stringToInt(char* string);
 */
 int StringCompare(char* string1 , char* string2);
 int length_of_2D_array(char** array);
+
 /**
 *Return the position at which it is present in Alphabet Array
 *returns -1 if not present.
@@ -35,7 +38,7 @@ char* presentInTutnese(char input);
 
 
 void substitutionCipher(char operation, FILE **in,
-						FILE **out, int shiftAmount);
+						FILE **out, int shiftAmount ,char** argv);
 
 
 

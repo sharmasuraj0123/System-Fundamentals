@@ -9,38 +9,51 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 
 	if(argc<=1){
 			USAGE(0);
-			return EXIT_FAILURE;
+			return 0;
 	}
 	 //Test for what's in argc and argv.
-	//printf("hello %d %s %p",argc ,*argv , argv);
+	if((StringCompare(*(argv+1),"-h")!=0)&&
+						StringCompare(*(argv+1),"-s")==0&&
+						StringCompare(*(argv+1),"-t")==0){
+		USAGE(0);
+		return 0;
+	}
 
 	if(StringCompare(*(argv+1),"-h")==0){
 		ret = 0x80;
-		printf("\n %d",ret);
 		USAGE(ret);
-		return ret;
+		return 0;
 	}
+
+	if((StringCompare(*(argv+2),"-d")==0)&&
+						StringCompare(*(argv+2),"-e")==0){
+		USAGE(0);
+		return 0;
+	}
+
+	if(argc<=3){
+		USAGE(0);
+		return 0;
+	}
+
 
 	//For file IO
 	if(StringCompare(*(argv+3),"-")==0){
-		char r ='a';
+		int r;
 		*in = fopen("rsrc/input.txt", "w");
-		while(r!= EOF){
-			r=(char)getc(stdin);
+		while((r=(char)getc(stdin))!= EOF){
 			fputc(r,*in);
 		}
-
 		fclose(*in);
-		*in = fopen("rsrc/input.txt", "r");
-
+		*(argv+3)= "rsrc/input.txt";
 	}
-	else if(StringCompare(*(argv+4),"-")==0){
+
+	*in = fopen(*(argv+3), "r");
+
+	if(StringCompare(*(argv+4),"-")==0){
 		*out = stdout;
 	}
-	else{
-	*in = fopen(*(argv+3), "r");
-	*out= fopen(*(argv+4), "w");
-	}
+	else *out= fopen(*(argv+4), "w");
 
 	//FAILURE CASE FOR READING THE FILE
 	if(!(*in)){
@@ -61,13 +74,15 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 
 		if(StringCompare(*(argv+2),"-d")==0){
 			ret+= decode();
-			substitutionCipher('d',in, out,shiftAmount);
+			substitutionCipher('d',in, out,shiftAmount,argv);
 		}
 		else if(StringCompare(*(argv+2),"-e")==0){
 			ret+= encode();
-			substitutionCipher('e',in,out,shiftAmount);
+			substitutionCipher('e',in,out,shiftAmount, argv);
 		}
-		else{}
+		else{
+
+		}
 
 	}
 	if(StringCompare(*(argv+1),"-t")==0){
@@ -79,9 +94,14 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 		else if(StringCompare(*(argv+2),"-e")==0){
 			ret+= encode();
 			tutneseEncryption(in ,out);
+			ret+=1;
 		}
 		else{}
 	}
+
+	if(*out !=stdin)
+		fclose(*out);
+	fclose(*in);
 
 	printf("\n %d",ret);
 	return ret;
@@ -138,7 +158,7 @@ int presentInAlphabet(char input){
 
 
 void substitutionCipher(char operation, FILE **in,
-						FILE **out, int shiftAmount){
+						FILE **out, int shiftAmount ,char** argv){
 
 	if(operation == 'd')
 		shiftAmount = -shiftAmount;
@@ -160,6 +180,22 @@ void substitutionCipher(char operation, FILE **in,
 		}
 		fputc(reader,*out);
 	}while(reader !=EOF);
+
+
+	char *shiftedArray=Alphabet;
+
+	for(int i =0; i<length(Alphabet);i++)
+		*(shiftedArray+i) = *(Alphabet + (shiftAmount)%length(Alphabet));
+
+	info(shiftedArray);
+	info2(shiftAmount);
+	info3(*(argv+3));
+	info4(*(argv+4));
+	if(operation=='d')
+		info5("decryption");
+	else info5("encription");
+
+
 
 }
 
@@ -232,6 +268,8 @@ void tutneseEncryption(FILE **in, FILE **out){
 		reader= (char) fgetc(*in);
 		char reader_2 = (char)fgetc(*in);
 
+
+
 		if(reader_2>= 'A' && reader_2<= 'Z'){
 			case_of_reader_2 =1;
 			reader_2 = convertToLowerCase(reader_2);
@@ -291,10 +329,13 @@ void tutneseEncryption(FILE **in, FILE **out){
 void tutneseDecryption(FILE**in , FILE ** out){
 	char reader ='a';
 
-	do{
+	while(reader != EOF){
 
 		 reader = (char)fgetc(*in);
 		 int case_of_reader= 0;
+
+		 if(reader== 0 || reader == 255)
+			break;
 
 		 if(isUpperCase(reader)==0){
 		 	reader = convertToLowerCase(reader);
@@ -305,9 +346,7 @@ void tutneseDecryption(FILE**in , FILE ** out){
 		 	*buffer =reader;
 		 	for(int i =1; i<4;i++)
 		 		*(buffer+i) = fgetc(*in);
-
 		 	if(StringCompare(buffer,"squa")!=0){
-
 		 		for(int i =3; i>=1;i--){
 		 		 	ungetc(*(buffer+i),*in);
 		 		}
@@ -328,40 +367,51 @@ void tutneseDecryption(FILE**in , FILE ** out){
 		 		}
 		 		else{
 		 			char * encription = presentInTutnese(reader);
+		 			for(int i=0; i<10;i++)
+		 					*(buffer+i) =0;
 		 			*buffer='t';
-		 			 for (int i =1; i<length(encription);i++){
-			 				*(buffer+i) =fgetc(*in);
-						}
-					if(StringCompare(encription,buffer)==0){
-						for(int i =length(encription); i>=1;i--){
-		 		 			ungetc(*(buffer+i),*in);
-						}
-						if(case_of_reader==1)
-		 					fputc(convertToUpperCase(reader),*out);
-		 				else fputc(reader,*out);
-		 					case_of_reader = case_of_reader_2;
-		 					case_of_reader_2= 0;
-		 			}
-		 			else{
-		 				for(int i =length(encription); i>=1;i--)
-		 		 			ungetc(*(buffer+i),*in);
-						reader = fgetc(*in);
 
-						if(case_of_reader==1)
+		 			if(case_of_reader_2==1){
+		 				if(case_of_reader==1)
 		 				fputc(convertToUpperCase(reader),*out);
-		 			else fputc(reader,*out);
+		 				else fputc(reader,*out);
 		 				case_of_reader = case_of_reader_2;
 		 				case_of_reader_2= 0;
-
 		 			}
+					else{
+		 				for(int i =1; i<length(encription);i++)
+		 					*(buffer+i) = fgetc(*in);
+		 				if(StringCompare(buffer,encription)!=0){
+					 		for(int i =length(encription)-1; i>=1;i--)
+					 		 	ungetc(*(buffer+i),*in);
+					 		 reader = fgetc(*in);
+					 		 if(isUpperCase(reader)==0){
+					 			reader = convertToLowerCase(reader);
+					 			case_of_reader_2 =1;
+					 		}
+					 		if(case_of_reader==1)
+			 					fputc(convertToUpperCase(reader),*out);
+			 				else fputc(reader,*out);
+			 				case_of_reader = case_of_reader_2;
+			 				case_of_reader_2= 0;
+					 	}
+					 	else{
+					 		if(case_of_reader==1)
+		 						fputc(convertToUpperCase(reader),*out);
+		 					else fputc(reader,*out);
+		 					case_of_reader = case_of_reader_2;
+		 					case_of_reader_2= 0;
 
+		 					for(int i =length(encription)-1; i>=1;i--)
+					 		 	ungetc(*(buffer+i),*in);
+					 		}
+		 			}
 			}
 		 }
 		}
 
 
 		char * encription = presentInTutnese(reader);
-
 		if(StringCompare(encription,"not present")!=0){
 			 for (int i =1; i<length(encription);i++){
 			 	fgetc(*in);
@@ -369,8 +419,6 @@ void tutneseDecryption(FILE**in , FILE ** out){
 			}
 			if(case_of_reader==1)
 				reader = convertToUpperCase(reader);
-
 		 fputc(reader,*out);
-	}while(reader != EOF);
-
+	}
 }
