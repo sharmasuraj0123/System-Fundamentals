@@ -40,7 +40,7 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 	//For file IO
 	if(StringCompare(*(argv+3),"-")==0){
 		int r;
-		*in = fopen("rsrc/input.txt", "w");
+		*in = fopen("rsrc/input_320_hw1.txt", "w");
 		while((r=(char)getc(stdin))!= EOF){
 			fputc(r,*in);
 		}
@@ -103,7 +103,6 @@ char validargs(int argc, char** argv, FILE** in, FILE** out) {
 		fclose(*out);
 	fclose(*in);
 
-	printf("\n %d",ret);
 	return ret;
 	}
 
@@ -159,7 +158,7 @@ int presentInAlphabet(char input){
 
 void substitutionCipher(char operation, FILE **in,
 						FILE **out, int shiftAmount ,char** argv){
-
+	int shiftData = shiftAmount;
 	if(operation == 'd')
 		shiftAmount = -shiftAmount;
 	char reader = 'a';
@@ -182,15 +181,17 @@ void substitutionCipher(char operation, FILE **in,
 	}while(reader !=EOF);
 
 
-	char *shiftedArray=Alphabet;
 
-	for(int i =0; i<length(Alphabet);i++)
-		*(shiftedArray+i) = *(Alphabet + (shiftAmount)%length(Alphabet));
+	info(Alphabet);
+	info2(shiftData);
 
-	info(shiftedArray);
-	info2(shiftAmount);
-	info3(*(argv+3));
-	info4(*(argv+4));
+	if(StringCompare(*(argv+3),"rsrc/input_320_hw1.txt")==0)
+		info3("STDIN");
+	else info3(*(argv+3));
+	if(StringCompare(*(argv+4),"-")==0)
+		info3("STDOUT");
+	else info3(*(argv+4));
+
 	if(operation=='d')
 		info5("decryption");
 	else info5("encription");

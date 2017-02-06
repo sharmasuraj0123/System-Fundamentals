@@ -8,7 +8,6 @@ int main(int argc, char **argv) {
 
     /* Note: create a variable to assign the result of validargs */
     char success = validargs(argc, argv, &in, &out);
-    printf("\n %c\n", success);
 	if(success==0)
 		return EXIT_FAILURE;
 
