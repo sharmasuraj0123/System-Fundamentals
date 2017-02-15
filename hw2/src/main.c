@@ -1,8 +1,11 @@
 #include "hw2.h"
 
 int main(int argc, char *argv[]){
-    DEFAULT_INPUT = stdin;
+
+    DEFAULT_INPUT = fopen("rsrc/sample.txt" ,"r");
+    //DEFAULT_INPUT = stdin;
     DEFAULT_OUTPUT = stdout;
+    DEFAULT_DICT ="rsrc/dictionary.txt";
     //create dictionary
     if((dict = (struct dictionary*) malloc(sizeof(struct dictionary))) == NULL)
     {
@@ -22,8 +25,10 @@ int main(int argc, char *argv[]){
     args.d = false;
     args.i = false;
     args.o = false;
-    strcpy(args.dictFile, DEFAULT_DICT_FILE);
-    // Make a loop index
+
+    strcpy(args.dictFile, DEFAULT_DICT);
+
+    // Make a loop index�
     int i;
     char line[MAX_SIZE];
     //Declare Files
@@ -65,7 +70,10 @@ int main(int argc, char *argv[]){
                 opt = 'i';
             if(strcmp(currArg, "-o") == 0)
                 opt = 'o';
+            if(strcmp(currArg,"-h")==0){
+                //USAGE(EXIT_SUCCESS);
         }
+            }
     }
     dFile = fopen(args.dictFile, "r");
 
@@ -87,7 +95,7 @@ int main(int argc, char *argv[]){
     strcpy(line,"\n--------INPUT FILE WORDS--------\n");
     fwrite(line, strlen(line)+1, 1, oFile);
 
-    while(!feof(iFile))
+    while(feof(iFile)!=0)
     {
         char word[MAX_SIZE];
         char* wdPtr = word;
@@ -100,7 +108,7 @@ int main(int argc, char *argv[]){
         if((line[strlen(line)-1] != ' ') && (line[strlen(line)-1] != '\n'))
             strcat(line, " ");
         //replaces spaces within a line with new lines
-        while(*character != NULL)
+        while(character != NULL)
         {
             if(*character == ' ' || *character == '\n')
             {
@@ -114,7 +122,7 @@ int main(int argc, char *argv[]){
                 printf("%d", strlen(wdPtr)-strlen(punct));
                 */
 
-                *wdPtr = NULL;
+                *wdPtr = 0;
                 wdPtr = word;
 
                 processWord(wdPtr);

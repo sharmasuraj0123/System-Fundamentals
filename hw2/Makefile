@@ -11,7 +11,7 @@ FUNC_FILES := $(filter-out build/main.o, $(ALL_OBJF))
 TEST_SRC := $(shell find $(TSTD) -type f -name *.c)
 INC := -I $(INCD)
 
-EXEC := spell
+EXEC := hw2
 TEST_EXEC := $(EXEC)_test
 
 CFLAGS := -Wall -Werror -pedantic -Wextra
@@ -32,12 +32,10 @@ info: all
 debug: CFLAGS += $(DFLAGS)
 debug: all
 
-test: setup $(TEST_EXEC)
-
 all: setup $(EXEC) $(TEST_EXEC)
 
 setup:
-	mkdir -p bin build
+	mkdir -p bin build out
 
 $(EXEC): $(ALL_OBJF)
 	$(CC) $^ -o $(BIND)/$@
@@ -50,4 +48,4 @@ $(BLDD)/%.o: $(SRCD)/%.c
 	$(CC) $(CFLAGS) $(INC) -c -o $@ $<
 
 clean:
-	$(RM) -r $(BLDD) $(BIND)
+	$(RM) -r $(BLDD) $(BIND) out
