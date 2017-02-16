@@ -50,7 +50,7 @@ void processDictionary(FILE* f){
                 {
                     addWord(currWord, wdPtr);
                     //printf("%s\n",currWord->word );
-                    dict->num_words++;
+
                     firstWord = 0;
                 }
                 else
@@ -81,7 +81,8 @@ void processDictionary(FILE* f){
 
 void addWord(struct dict_word* dWord, char* word){
     struct dict_word **listForadding = &(dict->word_list);
-    //setting up dWord fields
+    //setting up dWord field
+
     dWord->misspelled_count = 0;
     dWord->num_misspellings = 0;
 
@@ -89,11 +90,11 @@ void addWord(struct dict_word* dWord, char* word){
 
     dWord->next = *listForadding;
     *listForadding = dWord;
+    dict->num_words++;
 }
 
 void addMisspelledWord(struct misspelled_word **tempList,struct misspelled_word* misspelledWord, struct dict_word* correctWord, char* word){
     //setting up misspelledWord fields
-
     strcpy(misspelledWord->word, word);
     misspelledWord->misspelled = 0;
     misspelledWord->correct_word = correctWord;
@@ -163,22 +164,47 @@ void processWord(char* inputWord){
         return;
     }
     else if(foundMisspelledMatch(inputWord)){
-                printf("%s\n","lolwa" );
         return;
     }
     else
     {
+        if(number_of_new_words !=0){
+            struct dict_word* newWord;
+            //int counter = 0;
+
+            if((newWord = (struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+            addWord(newWord, inputWord);
+
+            char ** mSpelledWordList;
+            mSpelledWordList= gentypos(number_of_new_words, inputWord);
+
+
+            for(int i =0; i<number_of_new_words;i++){
+                struct misspelled_word* newMWord;
+
+                if((newMWord = (struct misspelled_word*) malloc(sizeof(struct misspelled_word))) == NULL)
+                    {
+                        printf("ERROR: OUT OF MEMORY.");
+                        return;
+                    }
+                addMisspelledWord(&m_list,newMWord, newWord, mSpelledWordList[i]);
+            }
+        }
+
         // char ch;
         // char conf;
-
         // do
         // {
         //     printf("\"%s\" was not found in the dictionary. Do you want to add it (Y/N)? ", inputWord);
         //     scanf("%c", &conf);
         //     while ((ch = getchar()) != '\n' && ch != EOF);
-        // }while(conf!='Y' && conf!='N');
+        // }while(conf!='y' && conf!='n');
 
-        // if(conf == 'Y')
+        // if(conf == 'y')
         // {
         //     struct dict_word* newWord;
         //     //int counter = 0;
@@ -188,18 +214,15 @@ void processWord(char* inputWord){
         //         printf("ERROR: OUT OF MEMORY.\n");
         //         return;
         //     }
-
         //     addWord(newWord, inputWord);
         //     dict->word_list = newWord;
         //     printf("Added \"%s\" to Dictionary. Add misspellings (Y/N)? ", inputWord);
-
         //     do
         //     {
         //         scanf("%c", &conf);
         //         while ((ch = getchar()) != '\n' && ch != EOF);
-        //     }while(conf!='Y' && conf!='N');
-
-        //     if(conf=='Y')
+        //     }while(conf!='y' && conf!='n');
+        //     if(conf=='y')
         //     {
         //         int numMisspellings=0;
         //         do
@@ -211,7 +234,7 @@ void processWord(char* inputWord){
 
         //         while(numMisspellings > 0)
         //         {
-        //             char word[WORDLENGTH];
+        //             char mWord[WORDLENGTH];
         //             //char* wdPtr = word;
         //             struct misspelled_word* newMWord;
 
@@ -221,8 +244,8 @@ void processWord(char* inputWord){
         //                 return;
         //             }
         //             printf("Enter misspelling: ");
-        //             scanf("%s", word);
-        //            // addMisspelledWord(newMWord, newWord, wdPtr);
+        //             scanf("%s", mWord);
+        //             addMisspelledWord(&m_list,newMWord, newWord, mWord);
         //             printf("Misspelling added\n");
         //             while ((ch = getchar()) != '\n' && ch != EOF);
         //             numMisspellings--;

@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include "mispelling.h"
 
 
 #define MAX_SIZE 256
@@ -26,6 +27,7 @@ FILE* DEFAULT_INPUT;
 FILE* DEFAULT_OUTPUT;
 struct dictionary* dict;
 struct misspelled_word* m_list;
+int number_of_new_words;
 
 struct Args{
     bool d;

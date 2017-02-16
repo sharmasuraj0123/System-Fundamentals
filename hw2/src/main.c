@@ -19,7 +19,7 @@ int main(int argc, char *argv[]){
         return EXIT_FAILURE;
     }
     m_list = NULL;
-
+    number_of_new_words=0;
     struct Args args;
     // Set struct default values
     args.d = false;
@@ -66,14 +66,18 @@ int main(int argc, char *argv[]){
         {
             if(strcmp(currArg, "-d") == 0)
                 opt = 'd';
-            if(strcmp(currArg, "-i") == 0)
+            else if(strcmp(currArg, "-i") == 0)
                 opt = 'i';
-            if(strcmp(currArg, "-o") == 0)
+            else if(strcmp(currArg, "-o") == 0)
                 opt = 'o';
-            if(strcmp(currArg,"-h")==0){
+            else if(strcmp(currArg,"-h")==0){
                 //USAGE(EXIT_SUCCESS);
-        }
             }
+            else if(*currArg=='A'){
+                number_of_new_words = (int)(currArg[1] -48);
+            }
+
+         }
     }
     dFile = fopen(args.dictFile, "r");
 
@@ -89,7 +93,6 @@ int main(int argc, char *argv[]){
     else
     {
         processDictionary(dFile);
-        printMispelledList();
     }
 
     strcpy(line,"\n--------INPUT FILE WORDS--------\n");
@@ -116,7 +119,6 @@ int main(int argc, char *argv[]){
         {
             if(*character == ' ' || *character == '\n')
             {
-
                 /*char* punct = wdPtr-1;
                     printf("char:%c",punct);
                 while(!((*punct>='a' && *punct<='z') || (*punct>='A' && *punct<='Z')))
@@ -131,8 +133,13 @@ int main(int argc, char *argv[]){
                 wdPtr = word;
                 processWord(wdPtr);
 
-                strcat(wdPtr, " ");
-                //fwrite(wdPtr, strlen(wdPtr)+1, 1, oFile);
+                if(*character=='\n')
+                    strcat(wdPtr, "\n");
+                else   strcat(wdPtr, " ");
+
+
+
+                fwrite(wdPtr, strlen(wdPtr)+1, 1, oFile);
                 //printf("%s\n",wdPtr);
             }
             else
@@ -147,15 +154,17 @@ int main(int argc, char *argv[]){
     }
 
     strcpy(line, "\n--------DICTIONARY WORDS--------\n");
-    //printDictionary();
-
     fwrite(line, strlen(line)+1, 1, oFile);
+
+
     //printWords(dict->word_list , oFile);
-
     strcpy(line,"\n--------FREED WORDS--------\n");
-    fwrite(line, strlen(line)+1, 1, oFile);
 
-    freeWords(dict->word_list);
+    fwrite(line, strlen(line)+1, 1, oFile);
+    //printMispelledList();
+
+    printDictionary();
+    //freeWords(dict->word_list);
 
     //free dictionary
     free(dict);
