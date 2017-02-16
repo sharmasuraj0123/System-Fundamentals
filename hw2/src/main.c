@@ -89,18 +89,19 @@ int main(int argc, char *argv[]){
     else
     {
         processDictionary(dFile);
-
+        printMispelledList();
     }
 
     strcpy(line,"\n--------INPUT FILE WORDS--------\n");
     fwrite(line, strlen(line)+1, 1, oFile);
 
-    while(feof(iFile)!=0)
+
+    while(!feof(iFile))
     {
+
         char word[MAX_SIZE];
         char* wdPtr = word;
         //char line[MAX_SIZE];
-        char* character = line;
 
         fgets(line, MAX_SIZE+1, iFile);
 
@@ -108,10 +109,14 @@ int main(int argc, char *argv[]){
         if((line[strlen(line)-1] != ' ') && (line[strlen(line)-1] != '\n'))
             strcat(line, " ");
         //replaces spaces within a line with new lines
-        while(character != NULL)
+        char* character = line;
+
+
+        while(*character != 0)
         {
             if(*character == ' ' || *character == '\n')
             {
+
                 /*char* punct = wdPtr-1;
                     printf("char:%c",punct);
                 while(!((*punct>='a' && *punct<='z') || (*punct>='A' && *punct<='Z')))
@@ -124,11 +129,11 @@ int main(int argc, char *argv[]){
 
                 *wdPtr = 0;
                 wdPtr = word;
-
                 processWord(wdPtr);
 
                 strcat(wdPtr, " ");
-                fwrite(wdPtr, strlen(wdPtr)+1, 1, oFile);
+                //fwrite(wdPtr, strlen(wdPtr)+1, 1, oFile);
+                //printf("%s\n",wdPtr);
             }
             else
             {
@@ -142,11 +147,16 @@ int main(int argc, char *argv[]){
     }
 
     strcpy(line, "\n--------DICTIONARY WORDS--------\n");
-    fwrite(line, strlen(line)+1, 1, oFile);
-    printWords(dict->word_list , oFile);
+    //printDictionary();
 
-    //printf("\n--------FREED WORDS--------\n");
+    fwrite(line, strlen(line)+1, 1, oFile);
+    //printWords(dict->word_list , oFile);
+
+    strcpy(line,"\n--------FREED WORDS--------\n");
+    fwrite(line, strlen(line)+1, 1, oFile);
+
     freeWords(dict->word_list);
+
     //free dictionary
     free(dict);
     //free m_list
