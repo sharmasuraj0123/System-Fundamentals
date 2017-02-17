@@ -2,6 +2,8 @@
 #include <stdlib.h>
 #include <string.h>
 #include <stdbool.h>
+#include <libgen.h>
+#include <ctype.h>
 #include "mispelling.h"
 
 
@@ -9,17 +11,19 @@
 #define WORDLENGTH 50
 #define MAX_MISSPELLED_WORDS 5
 
-#define USAGE(return_code) do { \
-    fprintf(stderr, "%s\n", \
-        "Usage: spell [-h] [-o OUT_FILE] [-i IN_FILE] [-d DICT_FILE] [-An]\n" \
-        "Spell Checker using a custom dictionary. Auto corrects any known misspellings in the text.\n"); \
-        "Additional function to add new words and randomized misspellings to the dictionary.\n\n" \
-        "\t-h\tDisplays this usage.\n" \
-        "\t-o\tOUT_FILE filename, if omitted output to stdout\n" \
-        "\t-i\tIN_FILE filename, if omitted input comes from stdin (CTRL+D to end input)\n" \
-        "\t-d\tfor the dictionary filename, if omitted use default 'rsrc/dictionary.txt'\n" \
-        "\t-An\tAutomatically add n (in range 0-5) random misspellings for any word not in the dictionary.\n" \
-} while (0);
+#define USAGE(return_code) do {                                                                                \
+    fprintf(stderr, "%s\n",                                                                                     \
+        "Usage: spell [-h] [-o OUT_FILE] [-i IN_FILE] [-d DICT_FILE] [-An]\n"                                    \
+        "Spell Checker using a custom dictionary. Auto corrects any known misspellings in the text.\n"            \
+        "Additional function to add new words and randomized misspellings to the dictionary.\n\n"                  \
+        "\t-h\tDisplays this usage.\n"                                                                              \
+        "\t-o\tOUT_FILE filename, if omitted output to stdout\n"                                                     \
+        "\t-i\tIN_FILE filename, if omitted input comes from stdin (CTRL+D to end input)\n"                           \
+        "\t-d\tfor the dictionary filename, if omitted use default 'rsrc/dictionary.txt'\n"                            \
+        "\t-An\tAutomatically add n (in range 0-5) random misspellings for any word not in the dictionary.\n");         \
+exit(return_code);                                                                                                       \
+}while (0)
+
 
 
 char *DEFAULT_DICT;
@@ -66,6 +70,11 @@ struct misspelled_word{
 void printDictWord(struct dict_word);
 void printDictionary();
 void printMispelledList();
+int sizeofMispelledList();
+int sizeofWordList();
+int sizeofDictionary();
+int totalMispelledWords();
+void topThreeMspelled();
 /**
  * @brief      read in dictionary
  *

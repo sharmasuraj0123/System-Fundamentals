@@ -206,7 +206,7 @@ bool foundMisspelledMatch(char* inputWord){
         if(strcasecmp(inputWord, listPtr->word) == 0)
         {
             strcpy(inputWord, listPtr->correct_word->word);
-            listPtr->misspelled = 1;
+            listPtr->misspelled = true;
             listPtr->correct_word->misspelled_count++;
             return true;
         }
@@ -249,7 +249,6 @@ void printMispelledList(){
         cursor = cursor->next;
         count++;
     }
-    printf("%d\n",count);
 }
 
 void updateDictionary(FILE ** newFile){
@@ -264,15 +263,133 @@ void updateDictionary(FILE ** newFile){
             struct misspelled_word* mCounter = counter->misspelled[j];
             strcat(line , " ");
             strcat(line, mCounter->word);
-
             mCounter= mCounter->next;
         }
-
         strcat(line , "\n");
-        printf("%s\n",line );
         fputs(line, *newFile);
         counter= counter->next;
     }
+}
 
 
+int sizeofMispelledList(){
+    int count =0;
+    struct misspelled_word * cursor = m_list;
+    while (cursor != NULL){
+        cursor = cursor->next;
+        count++;
+    }
+    return (count*sizeof(struct misspelled_word)+sizeof(m_list));
+}
+
+int sizeofWordList(){
+    return(dict->num_words*sizeof(struct dict_word) + sizeofMispelledList()-sizeof(m_list));
+}
+int sizeofDictionary(){
+    return (sizeof(struct dictionary)+sizeofWordList()+sizeofMispelledList());
+}
+int totalMispelledWords(){
+    int count =0;
+    struct dict_word * cursor = dict->word_list;
+    while (cursor != NULL){
+        count+=cursor->misspelled_count;
+        cursor = cursor->next;
+}
+    return count;
+}
+void topThreeMspelled(){
+
+    struct  dict_word* one , *two ,*three , *cursor;
+    if((one =(struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+    if((two =(struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+    if((three =(struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+    if((cursor =(struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+
+    one = dict->word_list;
+    two = dict->word_list->next;
+    three= dict->word_list->next->next;
+
+    if(one->misspelled_count<two->misspelled_count){
+        cursor =one;
+        one =two;
+        two = cursor;
+    }
+
+    if(three->misspelled_count > one->misspelled_count){
+        cursor= three;
+        three = two;
+        two = one;
+        one = cursor;
+    }
+    else if(three->misspelled_count>two->misspelled_count){
+        cursor= three;
+        three = two;
+        two = cursor;
+    }
+
+    cursor= dict->word_list->next->next->next;
+
+    while(cursor!=NULL){
+        if(cursor->misspelled_count > one->misspelled_count){
+            three = two;
+            two = one;
+            one = cursor;
+        }
+        else if(cursor->misspelled_count > two->misspelled_count){
+            three= two;
+            two = cursor;
+        }
+        else if(cursor->misspelled_count> three->misspelled_count){
+            three= cursor;
+        }
+        cursor = cursor->next;
+    }
+
+    fprintf(stderr, "%s (%d times) : ",one->word , one->misspelled_count);
+    for(int i= 0 ; i<one->num_misspellings;i++)
+        if(one->misspelled[i]->misspelled)
+            fprintf(stderr, "%s ", one->misspelled[i]->word);
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "%s (%d times) : ",two->word , two->misspelled_count);
+    for(int i= 0 ; i<two->num_misspellings;i++)
+        if(two->misspelled[i]->misspelled)
+            fprintf(stderr, "%s ", two->misspelled[i]->word);
+    fprintf(stderr, "\n");
+
+    fprintf(stderr, "%s (%d times) : ",three->word , three->misspelled_count);
+    for(int i= 0 ; i<three->num_misspellings;i++)
+        if(three->misspelled[i]->misspelled)
+            fprintf(stderr, "%s ", three->misspelled[i]->word);
+    fprintf(stderr, "\n");
+
+
+}
+
+
+void printStatistics(){
+
+    fprintf(stderr," Total Number of words in dictionary:%d\n",dict->num_words );
+    fprintf(stderr, "Size of dictionary (in bytes): %d\n",sizeofDictionary());
+    fprintf(stderr, "Size of dict_word(in bytes): %d\n",sizeofWordList());
+    fprintf(stderr, "Size of mispelled List (in bytes):%d\n", sizeofMispelledList());
+    fprintf(stderr, "Total number of misplled words :%d\n",totalMispelledWords());
+    fprintf(stderr, "Top 3 misspelled words:\n");
+    topThreeMspelled();
 }

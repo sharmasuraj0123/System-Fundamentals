@@ -1,4 +1,7 @@
 #include "hw2.h"
+#include <libgen.h>
+
+
 
 int main(int argc, char *argv[]){
     add_words = false;
@@ -72,7 +75,7 @@ int main(int argc, char *argv[]){
             else if(strcmp(currArg, "-o") == 0)
                 opt = 'o';
             else if(strcmp(currArg,"-h")==0){
-                //USAGE(EXIT_SUCCESS);
+                USAGE(EXIT_SUCCESS);
             }
             else if(*(currArg +1)=='A' && *currArg== '-'){
                 add_words=true;
@@ -93,6 +96,7 @@ int main(int argc, char *argv[]){
     if(dFile == NULL)
     {
         printf("Unable to open: %s.\n", args.dictFile);
+        return EXIT_FAILURE;
     }
     else
     {
@@ -135,6 +139,7 @@ int main(int argc, char *argv[]){
 
                 *wdPtr = 0;
                 wdPtr = word;
+                //strlwr(wdPtr);
                 processWord(wdPtr);
 
                 if(*character=='\n')
@@ -148,7 +153,14 @@ int main(int argc, char *argv[]){
             }
             else
             {
-                *(wdPtr++) = *character;
+
+            if((*character<'a'&& *character>'z')&&
+                    (*(character+1)==' '|| *(character+1) == '\n')){
+                    printf("%s\n","lol");
+                    fputc(*character,oFile);
+                        }
+
+               else *(wdPtr++) = (char) tolower((int)*character);
             }
             character++;
         }
@@ -158,26 +170,21 @@ int main(int argc, char *argv[]){
     }
 
     if(add_words && word_has_been_added){
-        //printf("%s\n","lol");
-        // char * new_dict = NULL;
-        // strcpy(new_dict , args.dictFile);
 
-        // char* counter = new_dict;
+        char  new_dict[MAX_SIZE] = "";
+        char  counter[MAX_SIZE]="";
+        strcpy(counter,args.dictFile);
+        char* directory =dirname(counter);
+        strcat(new_dict,directory);
+        strcat(new_dict, "/new_");
 
-        // while(*(counter+1) != '\0')
-        //     counter++;
+        strcpy(counter,args.dictFile);
+        char* path  = basename(counter);
+        strcat(new_dict,path);
 
-        // while(counter!= new_dict){
-        //     if(*counter=='/'){
-        //         strcat("new_",counter+1);
-        //         break;
-        //     }
-        //     counter--;
-        // }
-        // if(*counter==*new_dict)
-        //     strcat("new_",new_dict);
 
-        FILE * new_dFile = fopen("rsrc/new_dict","w");
+
+        FILE * new_dFile = fopen(new_dict,"w");
 
          updateDictionary(&new_dFile);
 
@@ -195,7 +202,7 @@ int main(int argc, char *argv[]){
 
     fwrite(line, strlen(line)+1, 1, oFile);
     //printMispelledList();
-
+    printStatistics();
     //printDictionary();
     //freeWords(dict->word_list);
 
