@@ -110,7 +110,8 @@ void addMisspelledWord(struct misspelled_word **tempList ,struct misspelled_word
  */
 void freeWords(struct dict_word* word);
 
-
+void freeWordList();
+void freeMSpelledList();
 
 /**
  * @brief      Print the words

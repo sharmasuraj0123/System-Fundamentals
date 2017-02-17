@@ -1,15 +1,14 @@
 #include "hw2.h"
 #include <libgen.h>
 
-
-
 int main(int argc, char *argv[]){
     add_words = false;
     word_has_been_added = false;
-    DEFAULT_INPUT = fopen("rsrc/sample.txt" ,"r");
-    //DEFAULT_INPUT = stdin;
+
+    DEFAULT_INPUT = stdin;
+   // DEFAULT_INPUT = fopen("rsrc/sample.txt", "r");
     DEFAULT_OUTPUT = stdout;
-    DEFAULT_DICT ="rsrc/dictionary.txt";
+    DEFAULT_DICT ="dictionary.txt";
     //create dictionary
     if((dict = (struct dictionary*) malloc(sizeof(struct dictionary))) == NULL)
     {
@@ -103,8 +102,7 @@ int main(int argc, char *argv[]){
         processDictionary(dFile);
     }
 
-    strcpy(line,"\n--------INPUT FILE WORDS--------\n");
-    fwrite(line, strlen(line)+1, 1, oFile);
+    //fprintf(oFile,"\n--------INPUT FILE WORDS--------\n");
 
 
     while(!feof(iFile))
@@ -112,7 +110,6 @@ int main(int argc, char *argv[]){
 
         char word[MAX_SIZE];
         char* wdPtr = word;
-        //char line[MAX_SIZE];
 
         fgets(line, MAX_SIZE+1, iFile);
 
@@ -146,10 +143,7 @@ int main(int argc, char *argv[]){
                     strcat(wdPtr, "\n");
                 else   strcat(wdPtr, " ");
 
-
-
-                fwrite(wdPtr, strlen(wdPtr)+1, 1, oFile);
-                //printf("%s\n",wdPtr);
+                fprintf(oFile,"%s",wdPtr);
             }
             else
             {
@@ -188,28 +182,19 @@ int main(int argc, char *argv[]){
 
          updateDictionary(&new_dFile);
 
-
+        fclose(new_dFile);
     }
 
-
-
-    strcpy(line, "\n--------DICTIONARY WORDS--------\n");
-    fwrite(line, strlen(line)+1, 1, oFile);
-
-
-    //printWords(dict->word_list , oFile);
-    strcpy(line,"\n--------FREED WORDS--------\n");
-
-    fwrite(line, strlen(line)+1, 1, oFile);
     //printMispelledList();
     printStatistics();
     //printDictionary();
     //freeWords(dict->word_list);
 
     //free dictionary
+    freeMSpelledList();
+    freeWordList();
     free(dict);
     //free m_list
-    free(m_list);
 
     fclose(dFile);
     fclose(iFile);

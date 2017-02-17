@@ -104,6 +104,23 @@ void addMisspelledWord(struct misspelled_word **tempList,struct misspelled_word*
     *tempList = misspelledWord;
 }
 
+void freeMSpelledList(){
+    struct misspelled_word* pointer;
+                    if((pointer = malloc(sizeof(struct misspelled_word))) == NULL)
+                    {
+                        printf("ERROR: OUT OF MEMORY.");
+                        return;
+                    }
+    pointer = m_list;
+    while((pointer=m_list)!=NULL){
+        m_list= m_list->next;
+        free(pointer);
+    }
+    if(m_list!=NULL)
+        free(m_list);
+    free(pointer);
+}
+
 void freeWords(struct dict_word* currWord){
     if(currWord != NULL)
     {
@@ -113,6 +130,24 @@ void freeWords(struct dict_word* currWord){
         printf("FREED %s\n", currWord->word);
         free(currWord);
     }
+}
+void freeWordList(){
+    struct dict_word* pointer;
+            //int counter = 0;
+            if((pointer = (struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+                return;
+            }
+
+    pointer = dict->word_list;
+    while((pointer=dict->word_list)!=NULL){
+        dict->word_list= dict->word_list->next;
+        free(pointer);
+    }
+    if(dict->word_list!=NULL)
+        free(dict->word_list);
+    free(pointer);
 }
 
 void printWords(struct dict_word* currWord, FILE* f){
@@ -157,6 +192,7 @@ void printWords(struct dict_word* currWord, FILE* f){
             fwrite(line, strlen(line)+1, 1, f);
         }
     }
+
 }
 
 void processWord(char* inputWord){
@@ -216,13 +252,20 @@ bool foundMisspelledMatch(char* inputWord){
 }
 
 bool foundDictMatch(char* inputWord){
-    struct dict_word* listPtr = dict->word_list;
+    struct dict_word* listPtr;
+    if((listPtr = (struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
+            {
+                printf("ERROR: OUT OF MEMORY.\n");
+            }
+      listPtr = dict->word_list;
     while(listPtr != NULL)
     {
         if(strcasecmp(inputWord, listPtr->word) == 0)
             return true;
         listPtr = listPtr->next;
     }
+
+    free(listPtr);
     return false;
 }
 
@@ -269,6 +312,7 @@ void updateDictionary(FILE ** newFile){
         fputs(line, *newFile);
         counter= counter->next;
     }
+
 }
 
 
@@ -379,13 +423,17 @@ void topThreeMspelled(){
             fprintf(stderr, "%s ", three->misspelled[i]->word);
     fprintf(stderr, "\n");
 
+    free(one);
+    free(two);
+    free(three);
+    free(cursor);
 
 }
 
 
 void printStatistics(){
-
-    fprintf(stderr," Total Number of words in dictionary:%d\n",dict->num_words );
+    fprintf(stderr, "-----------STATISTICS OF PROGRAM-----------------\n" );
+    fprintf(stderr,"Total Number of words in dictionary:%d\n",dict->num_words );
     fprintf(stderr, "Size of dictionary (in bytes): %d\n",sizeofDictionary());
     fprintf(stderr, "Size of dict_word(in bytes): %d\n",sizeofWordList());
     fprintf(stderr, "Size of mispelled List (in bytes):%d\n", sizeofMispelledList());
