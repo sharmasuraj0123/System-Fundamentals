@@ -28,6 +28,9 @@ FILE* DEFAULT_OUTPUT;
 struct dictionary* dict;
 struct misspelled_word* m_list;
 int number_of_new_words;
+bool add_words;
+bool word_has_been_added;
+void updateDictionary(FILE ** newFile);
 
 struct Args{
     bool d;
@@ -138,3 +141,5 @@ bool foundMisspelledMatch(char* inputWord);
  * @return     boolean
  */
 bool foundDictMatch(char* inputWord);
+
+void printStatistics();

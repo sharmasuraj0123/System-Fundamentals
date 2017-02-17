@@ -100,7 +100,7 @@ void addMisspelledWord(struct misspelled_word **tempList,struct misspelled_word*
     misspelledWord->correct_word = correctWord;
 
     misspelledWord->next = *tempList;
-    (correctWord->misspelled)[++correctWord->num_misspellings] = misspelledWord;
+    (correctWord->misspelled)[correctWord->num_misspellings++] = misspelledWord;
     *tempList = misspelledWord;
 }
 
@@ -168,17 +168,19 @@ void processWord(char* inputWord){
     }
     else
     {
-        if(number_of_new_words !=0){
+        if(add_words){
             struct dict_word* newWord;
             //int counter = 0;
-
             if((newWord = (struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
             {
                 printf("ERROR: OUT OF MEMORY.\n");
                 return;
             }
-            addWord(newWord, inputWord);
 
+            newWord->num_misspellings = 0;
+            newWord->misspelled_count = 0;
+            addWord(newWord, inputWord);
+            word_has_been_added = true;
             char ** mSpelledWordList;
             mSpelledWordList= gentypos(number_of_new_words, inputWord);
 
@@ -194,64 +196,6 @@ void processWord(char* inputWord){
                 addMisspelledWord(&m_list,newMWord, newWord, mSpelledWordList[i]);
             }
         }
-
-        // char ch;
-        // char conf;
-        // do
-        // {
-        //     printf("\"%s\" was not found in the dictionary. Do you want to add it (Y/N)? ", inputWord);
-        //     scanf("%c", &conf);
-        //     while ((ch = getchar()) != '\n' && ch != EOF);
-        // }while(conf!='y' && conf!='n');
-
-        // if(conf == 'y')
-        // {
-        //     struct dict_word* newWord;
-        //     //int counter = 0;
-
-        //     if((newWord = (struct dict_word*) malloc(sizeof(struct dict_word))) == NULL)
-        //     {
-        //         printf("ERROR: OUT OF MEMORY.\n");
-        //         return;
-        //     }
-        //     addWord(newWord, inputWord);
-        //     dict->word_list = newWord;
-        //     printf("Added \"%s\" to Dictionary. Add misspellings (Y/N)? ", inputWord);
-        //     do
-        //     {
-        //         scanf("%c", &conf);
-        //         while ((ch = getchar()) != '\n' && ch != EOF);
-        //     }while(conf!='y' && conf!='n');
-        //     if(conf=='y')
-        //     {
-        //         int numMisspellings=0;
-        //         do
-        //         {
-        //             printf("How many misspellings (1-5)?");
-        //             scanf("%d", &numMisspellings);
-        //             while ((ch = getchar()) != '\n' && ch != EOF);
-        //         }while(numMisspellings<1 || numMisspellings>5);
-
-        //         while(numMisspellings > 0)
-        //         {
-        //             char mWord[WORDLENGTH];
-        //             //char* wdPtr = word;
-        //             struct misspelled_word* newMWord;
-
-        //             if((newMWord = (struct misspelled_word*) malloc(sizeof(struct misspelled_word))) == NULL)
-        //             {
-        //                 printf("ERROR: OUT OF MEMORY.");
-        //                 return;
-        //             }
-        //             printf("Enter misspelling: ");
-        //             scanf("%s", mWord);
-        //             addMisspelledWord(&m_list,newMWord, newWord, mWord);
-        //             printf("Misspelling added\n");
-        //             while ((ch = getchar()) != '\n' && ch != EOF);
-        //             numMisspellings--;
-        //         }
-        //     }
-        // }
     }
 }
 
@@ -306,4 +250,29 @@ void printMispelledList(){
         count++;
     }
     printf("%d\n",count);
+}
+
+void updateDictionary(FILE ** newFile){
+
+    struct dict_word *counter = dict->word_list;
+
+    for(int i =0; i<dict->num_words;i++){
+        char line [MAX_SIZE] ="";
+        //char* lnPtr = line;
+        strcat(line,counter->word);
+        for(int j =0; j<counter->num_misspellings;j++){
+            struct misspelled_word* mCounter = counter->misspelled[j];
+            strcat(line , " ");
+            strcat(line, mCounter->word);
+
+            mCounter= mCounter->next;
+        }
+
+        strcat(line , "\n");
+        printf("%s\n",line );
+        fputs(line, *newFile);
+        counter= counter->next;
+    }
+
+
 }

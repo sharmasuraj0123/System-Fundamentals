@@ -1,7 +1,8 @@
 #include "hw2.h"
 
 int main(int argc, char *argv[]){
-
+    add_words = false;
+    word_has_been_added = false;
     DEFAULT_INPUT = fopen("rsrc/sample.txt" ,"r");
     //DEFAULT_INPUT = stdin;
     DEFAULT_OUTPUT = stdout;
@@ -73,8 +74,11 @@ int main(int argc, char *argv[]){
             else if(strcmp(currArg,"-h")==0){
                 //USAGE(EXIT_SUCCESS);
             }
-            else if(*currArg=='A'){
-                number_of_new_words = (int)(currArg[1] -48);
+            else if(*(currArg +1)=='A' && *currArg== '-'){
+                add_words=true;
+                number_of_new_words = (int)(currArg[2]-48);
+                if(number_of_new_words >5 ||number_of_new_words<0)
+                    return EXIT_FAILURE;
             }
 
          }
@@ -153,6 +157,35 @@ int main(int argc, char *argv[]){
             break;
     }
 
+    if(add_words && word_has_been_added){
+        //printf("%s\n","lol");
+        // char * new_dict = NULL;
+        // strcpy(new_dict , args.dictFile);
+
+        // char* counter = new_dict;
+
+        // while(*(counter+1) != '\0')
+        //     counter++;
+
+        // while(counter!= new_dict){
+        //     if(*counter=='/'){
+        //         strcat("new_",counter+1);
+        //         break;
+        //     }
+        //     counter--;
+        // }
+        // if(*counter==*new_dict)
+        //     strcat("new_",new_dict);
+
+        FILE * new_dFile = fopen("rsrc/new_dict","w");
+
+         updateDictionary(&new_dFile);
+
+
+    }
+
+
+
     strcpy(line, "\n--------DICTIONARY WORDS--------\n");
     fwrite(line, strlen(line)+1, 1, oFile);
 
@@ -163,7 +196,7 @@ int main(int argc, char *argv[]){
     fwrite(line, strlen(line)+1, 1, oFile);
     //printMispelledList();
 
-    printDictionary();
+    //printDictionary();
     //freeWords(dict->word_list);
 
     //free dictionary
@@ -175,4 +208,5 @@ int main(int argc, char *argv[]){
     fclose(iFile);
     fclose(oFile);
     return EXIT_SUCCESS;
-}
+        }
+
