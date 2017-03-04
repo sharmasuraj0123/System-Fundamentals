@@ -90,7 +90,7 @@ void *sf_malloc(size_t size) {
 
   	/* Allign the Blocks */
   	if (size <= DSIZE)
-    	asize = 2 * DSIZE;
+    	asize = DSIZE;
   	else
 		asize = DSIZE * ((size + DSIZE + (DSIZE - 1)) / DSIZE);
 
@@ -98,7 +98,7 @@ void *sf_malloc(size_t size) {
 	if ((bp = find_fit(asize)) != NULL){
 
     		place(bp, asize , size);
-    		return (bp);
+    		return ((char *)bp +WSIZE);
   }
 
 
@@ -107,7 +107,7 @@ void *sf_malloc(size_t size) {
     	return (NULL);
 
   	place(bp, asize , size);
-	return (bp);
+	return ((char *)bp + WSIZE);
 
 }
 
@@ -138,7 +138,7 @@ static void *extend_heap(size_t words) {
   }
   /* Initialize free block header*/
   initHeader(&((sf_free_header *)bp)->header);
-  ((sf_free_header *)bp)->header.block_size = size - DSIZE;
+  ((sf_free_header *)bp)->header.block_size = (size - DSIZE)/16;
   ((sf_free_header *)bp)->next =NULL;
   ((sf_free_header *)bp)->prev = NULL;
   freelist_insertion(bp);
@@ -154,7 +154,7 @@ static void *extend_heap(size_t words) {
 	sf_free_header *cursor = freelist_head;
 
 	while(cursor!=NULL){
-		if(cursor->header.block_size >=asize){
+		if(cursor->header.block_size*DSIZE >=asize){
 			if(bp==NULL){
 				bp = &(cursor->header);
 			}
@@ -174,7 +174,7 @@ return bp;
 }
 
 static void place(void *bp, size_t asize , size_t rsize){
-	sf_header * bheader = &((sf_free_header *)bp)->header;
+	sf_header * bheader = (sf_header *)bp;
 	sf_footer * bfooter =NULL;
 
 	/*Accounting_for padding*/
@@ -183,7 +183,7 @@ static void place(void *bp, size_t asize , size_t rsize){
 	bheader->requested_size = rsize;
 
 	/* Check for Splinters*/
-	int splinter_size =bheader->block_size -asize;
+	int splinter_size = bheader->block_size*16 -asize;
 
 	if(splinter_size >= 32){
 
@@ -192,15 +192,15 @@ static void place(void *bp, size_t asize , size_t rsize){
 
 		bheader->alloc =1;
 		bfooter->alloc =1;
-		bheader->block_size = asize+DSIZE;
-		bfooter->block_size = asize+DSIZE;
+		bheader->block_size = (asize+DSIZE)/16;
+		bfooter->block_size = (asize+DSIZE)/16;
 
 		/*No Splinters, Hence Split the block*/
 		size_t new_size = splinter_size;
 		sf_free_header * nptr = (sf_free_header *)((char *)bp+ asize + DSIZE);
 		/* Initialize free block header*/
 		  initHeader(&nptr->header);
-		  nptr->header.block_size = new_size - DSIZE;
+		  nptr->header.block_size = (new_size - DSIZE)/16;
 		  nptr->next =NULL;
 		  nptr->prev = NULL;
 
@@ -211,8 +211,8 @@ static void place(void *bp, size_t asize , size_t rsize){
 		bfooter = (sf_footer *)((char *)bp + asize+ WSIZE +splinter_size);
 		bheader->alloc =1;
 		bfooter->alloc =1;
-		bheader->block_size = asize+DSIZE + splinter_size;
-		bfooter->block_size = asize+DSIZE + splinter_size;
+		bheader->block_size = (asize+DSIZE + splinter_size)/16;
+		bfooter->block_size = (asize+DSIZE + splinter_size)/16;
 		bheader->splinter =1;
 		bfooter->splinter =1;
 		bheader->splinter_size = splinter_size;
@@ -257,7 +257,7 @@ static void freelist_insertion(sf_free_header *newblock){
 static void freelist_removal(sf_free_header *block){
 	if(block == freelist_head){
 		freelist_head = block->next;
-		//freelist_head->prev = NULL;
+		block->next = NULL;
 		return;
 	}
 
