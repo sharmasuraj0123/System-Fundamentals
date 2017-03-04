@@ -15,7 +15,7 @@
 */
 #define WSIZE 8
 #define DSIZE (2 * WSIZE)
-#define CHUNKSIZE (1<<24)
+#define CHUNKSIZE (1<<12)
 
 #define MAX(x, y) ((x) > (y) ? (x) : (y))
 
@@ -58,12 +58,16 @@ void initFooter(sf_footer *initFooter);
  * Doing so will make it accessible via the extern statement in sfmm.h
  * which will allow you to pass the address to sf_snapshot in a different file.
  */
-sf_free_header* freelist_head = NULL;
-static void* sf_heap_listp =NULL;
+sf_free_header* freelist_head =NULL;
+static void* sf_heap_listp ;
 
 void *sf_malloc(size_t size) {
 
+
+	sf_heap_listp = sf_sbrk(0);
+
 	if(sf_sbrk(0)==NULL){
+
 		sf_mem_init();
 		sf_heap_listp=sf_sbrk(0);
 
@@ -90,10 +94,13 @@ void *sf_malloc(size_t size) {
   	else
 		asize = DSIZE * ((size + DSIZE + (DSIZE - 1)) / DSIZE);
 
-	 if ((bp = find_fit(asize)) != NULL){
+
+	if ((bp = find_fit(asize)) != NULL){
+
     		place(bp, asize , size);
     		return (bp);
   }
+
 
   	extendsize = MAX(asize, CHUNKSIZE);
   	if ((bp = extend_heap(extendsize / WSIZE)) == NULL)
@@ -117,7 +124,7 @@ int sf_info(info* ptr) {
 }
 
 static void *extend_heap(size_t words) {
-  sf_free_header *bp;
+  void *bp;
   size_t size;
 
   size = (words % 2) ? (words+1) * WSIZE : words * WSIZE;
@@ -126,14 +133,14 @@ static void *extend_heap(size_t words) {
     size = 32;
   }
   /* call for more memory space */
-  if ((int)(bp = (sf_free_header *) sf_sbrk(size)) == -1){
+  if ((long)(bp = sf_sbrk(size)) == -1){
     return NULL;
   }
   /* Initialize free block header*/
-  initHeader(&bp->header);
-  bp->header.block_size = size - DSIZE;
-  bp->next =NULL;
-  bp->prev = NULL;
+  initHeader(&((sf_free_header *)bp)->header);
+  ((sf_free_header *)bp)->header.block_size = size - DSIZE;
+  ((sf_free_header *)bp)->next =NULL;
+  ((sf_free_header *)bp)->prev = NULL;
   freelist_insertion(bp);
 
   /* coalesce bp with next and previous blocks */
@@ -217,6 +224,11 @@ static void freelist_insertion(sf_free_header *newblock){
 
 	sf_free_header *cursor = freelist_head;
 
+	if(freelist_head ==NULL){
+		freelist_head = newblock;
+		return;
+	}
+
 	if(cursor>newblock){
 		newblock->next = cursor;
 		cursor->prev = newblock;
@@ -245,20 +257,20 @@ static void freelist_insertion(sf_free_header *newblock){
 static void freelist_removal(sf_free_header *block){
 	if(block == freelist_head){
 		freelist_head = block->next;
-		freelist_head->prev = NULL;
+		//freelist_head->prev = NULL;
 		return;
 	}
 
 	if(block->next==NULL){
 		block->prev->next = NULL;
-		block->prev= NULL;
+		//block->prev= NULL;
 		return;
 	}
 
 	block->prev->next = block->next;
 	block->next->prev = block->prev;
-	block->next = NULL;
-	block->prev = NULL;
+	//block->next = NULL;
+	//block->prev = NULL;
 }
 
 void initHeader(sf_header *initHead){
