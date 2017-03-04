@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <errno.h>
 
 /*Basic Macros and constants*/
 /* I used WSIZE and DSIZE to keep the implementation similar
@@ -117,7 +118,45 @@ void *sf_realloc(void *ptr, size_t size) {
 
 void sf_free(void* ptr) {
 
-	return;
+	/*Checking for all invalid ptrs*/
+	if(ptr == NULL){
+		errno = ENOENT;
+		return;
+	}
+
+	sf_header * block_header = (sf_header *)((char *)ptr - WSIZE);
+	sf_footer * block_footer = (sf_footer *)FTRP(ptr);
+
+	if(block_header->alloc!=1 || block_footer->alloc !=1){
+		errno = ENOENT;
+		return;
+	}
+	if(block_header->block_size !=block_footer->block_size){
+		errno =ENOENT;
+		return;
+	}
+	if(block_footer->splinter!=block_header->splinter){
+		errno =ENOENT;
+		return;
+	}
+
+	/*Saving the size of block*/
+	size_t save_size = block_header->block_size;
+
+	/*Setting all parameters to 0*/
+	initHeader(block_header);
+	initFooter(block_footer);
+
+	block_header->block_size = save_size;
+	block_footer->block_size = save_size;
+	/*Creating new Free Block adding to the list*/
+	sf_free_header * freed_block = (sf_free_header *)ptr;
+	freed_block->header = *block_header;
+	freed_block->next = NULL;
+	freed_block->prev = NULL;
+	freelist_insertion(freed_block);
+
+
 }
 
 int sf_info(info* ptr) {
