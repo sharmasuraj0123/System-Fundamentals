@@ -61,7 +61,6 @@ void initFooter(sf_footer *initFooter);
 sf_free_header* freelist_head = NULL;
 static void* sf_heap_listp =NULL;
 
-
 void *sf_malloc(size_t size) {
 
 	if(sf_sbrk(0)==NULL){
@@ -197,6 +196,8 @@ static void place(void *bp, size_t asize , size_t rsize){
 		  nptr->header.block_size = new_size - DSIZE;
 		  nptr->next =NULL;
 		  nptr->prev = NULL;
+
+		  freelist_removal(bp);
 		  freelist_insertion(nptr);
 	}
 	else{
@@ -208,18 +209,56 @@ static void place(void *bp, size_t asize , size_t rsize){
 		bheader->splinter =1;
 		bfooter->splinter =1;
 		bheader->splinter_size = splinter_size;
+		freelist_removal(bp);
 	}
-
-
-
-
 }
 
 static void freelist_insertion(sf_free_header *newblock){
 
-}
-static void freelist_removal(sf_free_header *block){
+	sf_free_header *cursor = freelist_head;
 
+	if(cursor>newblock){
+		newblock->next = cursor;
+		cursor->prev = newblock;
+		freelist_head = newblock;
+		return;
+	}
+
+	while(cursor<newblock && cursor->next !=NULL){
+		cursor = cursor->next;
+	}
+
+	if(cursor->next ==NULL){
+		cursor->next = newblock;
+		newblock->prev = cursor;
+		return;
+	}
+
+	sf_free_header *prev_cursor= cursor->prev;
+	prev_cursor ->next = newblock;
+	newblock->prev = prev_cursor;
+
+	newblock->next = cursor;
+	cursor->prev = newblock;
+}
+
+static void freelist_removal(sf_free_header *block){
+	if(block == freelist_head){
+		freelist_head = block->next;
+		freelist_head->prev = NULL;
+		return;
+	}
+
+	if(block->next==NULL){
+		block->prev->next = NULL;
+		block->prev= NULL;
+		return;
+	}
+
+	block->prev->next = block->next;
+	block->next->prev = block->prev;
+	block->next = NULL;
+	block->prev = NULL;
 }
 
 void initHeader(sf_header *initHead){
