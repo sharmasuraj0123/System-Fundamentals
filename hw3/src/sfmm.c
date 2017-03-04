@@ -29,12 +29,12 @@
 #define GET_ALLOC(p) (GET(p) & 0x1)
 #define GET_SPLINTER (p) (GET(p) & 0x4)
 
-#define HDRP(bp)  ((unsigned long *)(bp) - WSIZE)
-#define FTRP(bp) ((unsigned long *)(bp) + GET_SIZE(HDRP(bp)) - DSIZE)
+
+#define FTRP(bp) (( char *)(bp) + GET_SIZE(bp))
 
 /* Given block ptr bp, compute address of next and previous blocks */
-#define NEXT_BLOCK(bp)  ((unsigned long *)(bp) + GET_SIZE(HDRP(bp)))
-#define PREV_BLOCK(bp) ((unsigned long *)(bp) - GET_SIZE((unsigned long *)(bp) - DSIZE))
+#define NEXT_BLOCK(bp)  ((char *)(bp) + GET_SIZE(bp))
+#define PREV_BLOCK(bp) ((char *)(bp) - GET_SIZE((char *)(bp) - WSIZE))
 
 
 static void *coalesce(void *bp);
@@ -116,6 +116,7 @@ void *sf_realloc(void *ptr, size_t size) {
 }
 
 void sf_free(void* ptr) {
+
 	return;
 }
 
@@ -138,7 +139,7 @@ static void *extend_heap(size_t words) {
   }
   /* Initialize free block header*/
   initHeader(&((sf_free_header *)bp)->header);
-  ((sf_free_header *)bp)->header.block_size = (size - DSIZE)/16;
+  ((sf_free_header *)bp)->header.block_size = (size)/16;
   ((sf_free_header *)bp)->next =NULL;
   ((sf_free_header *)bp)->prev = NULL;
   freelist_insertion(bp);
@@ -154,7 +155,7 @@ static void *extend_heap(size_t words) {
 	sf_free_header *cursor = freelist_head;
 
 	while(cursor!=NULL){
-		if(cursor->header.block_size*DSIZE >=asize){
+		if(cursor->header.block_size*DSIZE-DSIZE >=asize){
 			if(bp==NULL){
 				bp = &(cursor->header);
 			}
@@ -170,7 +171,35 @@ static void *extend_heap(size_t words) {
 }
 
 static void *coalesce (void* bp){
-return bp;
+	sf_free_header * current = (sf_free_header *)bp;
+	sf_free_header * next_free_block =  current->next;
+	sf_free_header * prev_free_block = current->prev;
+
+	size_t next_Alloc = next_free_block -(sf_free_header *)NEXT_BLOCK(current);
+	size_t prev_Alloc = current - (sf_free_header *)NEXT_BLOCK(prev_free_block);
+
+	/*Only NEXT is free*/
+	if(!next_Alloc && prev_Alloc){
+		current->header.block_size += next_free_block->header.block_size;
+		freelist_removal(next_free_block);
+	}
+	/*Only PREVOIUS is free*/
+	else if(next_Alloc && !prev_Alloc){
+		prev_free_block->header.block_size +=current->header.block_size;
+		freelist_removal(current);
+		bp =prev_free_block;
+	}
+	/*Both Free*/
+	else if(!next_Alloc && !prev_Alloc){
+		current->header.block_size += next_free_block->header.block_size;
+		prev_free_block->header.block_size += current->header.block_size;
+
+		freelist_removal(next_free_block);
+		freelist_removal(current);
+		bp =prev_free_block;
+	}
+
+	return bp;
 }
 
 static void place(void *bp, size_t asize , size_t rsize){
@@ -200,7 +229,7 @@ static void place(void *bp, size_t asize , size_t rsize){
 		sf_free_header * nptr = (sf_free_header *)((char *)bp+ asize + DSIZE);
 		/* Initialize free block header*/
 		  initHeader(&nptr->header);
-		  nptr->header.block_size = (new_size - DSIZE)/16;
+		  nptr->header.block_size = (new_size)/16;
 		  nptr->next =NULL;
 		  nptr->prev = NULL;
 
