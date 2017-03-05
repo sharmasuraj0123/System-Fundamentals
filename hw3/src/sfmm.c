@@ -8,6 +8,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 
+#include <string.h>
 #include <errno.h>
 
 /*Basic Macros and constants*/
@@ -31,7 +32,7 @@
 #define GET_SPLINTER (p) (GET(p) & 0x4)
 
 
-#define FTRP(bp) (( char *)(bp) + GET_SIZE(bp))
+#define FTRP(bp) (( char *)(bp) + GET_SIZE(bp)- WSIZE)
 
 /* Given block ptr bp, compute address of next and previous blocks */
 #define NEXT_BLOCK(bp)  ((char *)(bp) + GET_SIZE(bp))
@@ -50,6 +51,7 @@ static void freelist_insertion(sf_free_header *newblock);
 
 static void freelist_removal(sf_free_header *block);
 
+size_t allignBlock(size_t size);
 
 void initHeader(sf_header *initHead);
 void initFooter(sf_footer *initFooter);
@@ -67,34 +69,30 @@ void *sf_malloc(size_t size) {
 
 	sf_heap_listp = sf_sbrk(0);
 
-	if(sf_sbrk(0)==NULL){
+	// if(sf_sbrk(0)==NULL){
 
-		sf_mem_init();
-		sf_heap_listp=sf_sbrk(0);
+	// 	sf_mem_init();
+	// 	sf_heap_listp=sf_sbrk(0);
 
-		if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
-			return NULL;
-		freelist_head = sf_heap_listp;
-		initHeader(&freelist_head->header);
-		freelist_head->next =NULL;
-		freelist_head->prev = NULL;
-	}
+	// 	if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
+	// 		return NULL;
+	// 	freelist_head = sf_heap_listp;
+	// 	initHeader(&freelist_head->header);
+	// 	freelist_head->next =NULL;
+	// 	freelist_head->prev = NULL;
+	// }
 
 	size_t asize;
   	size_t extendsize;
   	void *bp;
 
-  	/* Empty Case. */
-  	if (size == 0)
+  	/* Empty Case & Out of range Case*/
+  	if (size == 0 ||size > 16384){
+  		errno =ENOENT;
 		return (NULL);
+  	}
 
-
-  	/* Allign the Blocks */
-  	if (size <= DSIZE)
-    	asize = DSIZE;
-  	else
-		asize = DSIZE * ((size + DSIZE + (DSIZE - 1)) / DSIZE);
-
+  	asize = allignBlock(size);
 
 	if ((bp = find_fit(asize)) != NULL){
 
@@ -113,7 +111,66 @@ void *sf_malloc(size_t size) {
 }
 
 void *sf_realloc(void *ptr, size_t size) {
-	return NULL;
+
+	sf_header * block_header = (sf_header *)((char *)ptr - WSIZE);
+	sf_footer * block_footer = (sf_footer *)FTRP(ptr);
+
+	/*Checking for all invalid ptrs*/
+	if(ptr == NULL){
+		errno = ENOENT;
+		return (NULL);
+	}
+	if(block_header->alloc!=1 || block_footer->alloc !=1){
+		errno = ENOENT;
+		return (NULL);
+	}
+	if(block_header->block_size !=block_footer->block_size){
+		errno =ENOENT;
+		return (NULL);
+	}
+	if(block_footer->splinter!=block_header->splinter){
+		errno =ENOENT;
+		return (NULL);
+	}
+
+	/* Empty Case & Out of range Case*/
+  	if (size == 0 ||size > 16384){
+  		errno =ENOENT;
+		return (NULL);
+  	}
+
+  	/*Divided it in 2 parts*/
+  	size_t asize = allignBlock(size);
+  	size_t current_size = block_header->block_size*16 - DSIZE;
+
+
+  	/*Part 1: Splitting*/
+  	if(asize<=current_size){
+  		/*It is the same case while adding*/
+  		place(block_header,asize , size);
+  		return ((char *)block_header +WSIZE);
+  	}
+  	/*Part 2: Increasing*/
+  	/*If next Block is free*/
+  	if(!GET_ALLOC(NEXT_BLOCK(ptr)) &&
+  		GET_SIZE(NEXT_BLOCK(ptr))+current_size >=asize){
+
+  		block_header->block_size += ((sf_header *)NEXT_BLOCK(ptr))->block_size;
+		freelist_removal((sf_free_header *)NEXT_BLOCK(ptr));
+		((sf_footer *)FTRP(block_header))->block_size = block_header->block_size;
+		place(block_header,asize,size);
+		return ((char *)block_header + WSIZE);
+  	}
+  	else{
+  		/*No Splitting or Merging can be done.
+  		* Malloc needs to be called.
+  		*/
+  		void * realloc = sf_malloc(size);
+  		memcpy(realloc , ptr, current_size);
+  		sf_free(ptr);
+  		return realloc;
+  	}
+
 }
 
 void sf_free(void* ptr) {
@@ -155,7 +212,7 @@ void sf_free(void* ptr) {
 	freed_block->next = NULL;
 	freed_block->prev = NULL;
 	freelist_insertion(freed_block);
-
+	coalesce(freed_block);
 
 }
 
@@ -210,23 +267,33 @@ static void *extend_heap(size_t words) {
 }
 
 static void *coalesce (void* bp){
+
 	sf_free_header * current = (sf_free_header *)bp;
+	/*Setting them a random positvie value to avoid*/
+	size_t next_Alloc = 10;
+	size_t prev_Alloc = 10;
+
 	sf_free_header * next_free_block =  current->next;
 	sf_free_header * prev_free_block = current->prev;
+	/*Checking for Special Cases*/
+	if(next_free_block!=NULL)
+		next_Alloc = &next_free_block->header - (sf_header *)NEXT_BLOCK(current);
 
-	size_t next_Alloc = next_free_block -(sf_free_header *)NEXT_BLOCK(current);
-	size_t prev_Alloc = current - (sf_free_header *)NEXT_BLOCK(prev_free_block);
+	if(prev_free_block!=NULL)
+		prev_Alloc = &current->header - (sf_header *)NEXT_BLOCK(prev_free_block);
 
 	/*Only NEXT is free*/
 	if(!next_Alloc && prev_Alloc){
 		current->header.block_size += next_free_block->header.block_size;
 		freelist_removal(next_free_block);
+		((sf_footer *)FTRP(bp))->block_size =current->header.block_size;
 	}
 	/*Only PREVOIUS is free*/
 	else if(next_Alloc && !prev_Alloc){
 		prev_free_block->header.block_size +=current->header.block_size;
 		freelist_removal(current);
 		bp =prev_free_block;
+		((sf_footer *)FTRP(bp))->block_size =prev_free_block->header.block_size;
 	}
 	/*Both Free*/
 	else if(!next_Alloc && !prev_Alloc){
@@ -236,6 +303,7 @@ static void *coalesce (void* bp){
 		freelist_removal(next_free_block);
 		freelist_removal(current);
 		bp =prev_free_block;
+		((sf_footer *)FTRP(bp))->block_size =prev_free_block->header.block_size;
 	}
 
 	return bp;
@@ -250,10 +318,11 @@ static void place(void *bp, size_t asize , size_t rsize){
 	bheader->padding_size = padding;
 	bheader->requested_size = rsize;
 
+
 	/* Check for Splinters*/
 	int splinter_size = bheader->block_size*16 -asize;
 
-	if(splinter_size >= 32){
+	if(splinter_size >= 32 || !GET_ALLOC(NEXT_BLOCK(bp))){
 
 		bfooter = (sf_footer *)((char *)bp + asize+ WSIZE);
 		initFooter(bfooter);
@@ -274,6 +343,7 @@ static void place(void *bp, size_t asize , size_t rsize){
 
 		  freelist_removal(bp);
 		  freelist_insertion(nptr);
+		  coalesce(nptr);
 	}
 	else{
 		bfooter = (sf_footer *)((char *)bp + asize+ WSIZE +splinter_size);
@@ -291,6 +361,10 @@ static void place(void *bp, size_t asize , size_t rsize){
 static void freelist_insertion(sf_free_header *newblock){
 
 	sf_free_header *cursor = freelist_head;
+	sf_footer * newblock_footer = (sf_footer *)FTRP(newblock);
+
+	initFooter(newblock_footer);
+	newblock_footer->block_size = newblock->header.block_size;
 
 	if(freelist_head ==NULL){
 		freelist_head = newblock;
@@ -323,6 +397,9 @@ static void freelist_insertion(sf_free_header *newblock){
 }
 
 static void freelist_removal(sf_free_header *block){
+	if(block->header.alloc ==1)
+		return;
+
 	if(block == freelist_head){
 		freelist_head = block->next;
 		block->next = NULL;
@@ -355,5 +432,16 @@ void initFooter(sf_footer *initFooter){
 	initFooter->alloc =0;
 	initFooter->splinter =0;
 	initFooter->block_size =0;
+}
+
+size_t allignBlock(size_t size){
+	size_t asize;
+/* Allign the Blocks */
+  	if (size <= DSIZE)
+    	asize = DSIZE;
+  	else
+		asize = DSIZE * ((size + DSIZE + (DSIZE - 1)) / DSIZE);
+
+	return asize;
 }
 
