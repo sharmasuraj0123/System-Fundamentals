@@ -38,6 +38,11 @@
 #define NEXT_BLOCK(bp)  ((char *)(bp) + GET_SIZE(bp))
 #define PREV_BLOCK(bp) ((char *)(bp) - GET_SIZE((char *)(bp) - WSIZE))
 
+/*Get the pointer to Next Block*/
+#define GET_NEXT_PTR(bp)  (*((char **)(bp) + GET_SIZE(bp)))
+#define GET_PREV_PTR(bp) (*(char **)(bp) - GET_SIZE((char *)(bp) - WSIZE))
+
+
 
 static void *coalesce(void *bp);
 
@@ -56,6 +61,9 @@ size_t allignBlock(size_t size);
 void initHeader(sf_header *initHead);
 void initFooter(sf_footer *initFooter);
 
+void printEntireList();
+void printFreeList();
+
 /**
  * You should store the head of your free list in this variable.
  * Doing so will make it accessible via the extern statement in sfmm.h
@@ -66,8 +74,12 @@ static void* sf_heap_listp ;
 
 void *sf_malloc(size_t size) {
 
-
 	sf_heap_listp = sf_sbrk(0);
+	/*Visualizing*/
+  	printEntireList();
+    printFreeList();
+
+
 
 	// if(sf_sbrk(0)==NULL){
 
@@ -106,6 +118,13 @@ void *sf_malloc(size_t size) {
     	return (NULL);
 
   	place(bp, asize , size , 0);
+
+  	/*Visualizing*/
+  	printEntireList();
+    printFreeList();
+
+
+
 	return ((char *)bp + WSIZE);
 
 }
@@ -213,6 +232,10 @@ void sf_free(void* ptr) {
 	freed_block->prev = NULL;
 	freelist_insertion(freed_block);
 	coalesce(freed_block);
+
+	/*Visualizing*/
+  	printEntireList();
+    printFreeList();
 
 }
 
@@ -446,3 +469,24 @@ size_t allignBlock(size_t size){
 	return asize;
 }
 
+
+void printEntireList(){
+void * cursor = sf_sbrk(0);
+printf("---------------ENTIRE LIST----------------------------\n");
+while(cursor!= NULL){
+    sf_blockprint(cursor);
+    cursor = GET_NEXT_PTR(cursor);
+}
+printf("---------------ENTIRE LIST----------------------------\n");
+}
+
+void printFreeList(){
+sf_free_header * cursor = freelist_head;
+
+printf("---------------FREE LIST----------------------------\n");
+while(cursor!=NULL){
+    sf_blockprint(cursor);
+    cursor = cursor->next;
+}
+printf("---------------FREE LIST----------------------------\n");
+}
