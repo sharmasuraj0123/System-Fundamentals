@@ -57,12 +57,22 @@ int main(int argc, char *argv[]) {
     sf_mem_init(MAX_HEAP_SIZE);
 
     int *value1 = sf_malloc(sizeof(int));
-     press_to_cont();
-    int *value2 = sf_malloc(sizeof(int));
-     press_to_cont();
-    sf_free(value1);
-     press_to_cont();
-    sf_free(value2);
+    //  press_to_cont();
+     int *value2 = sf_malloc(96);
+    //  press_to_cont();
+     char * value3 =sf_malloc(30*sizeof(char *));
+     // printf("\n\n\n\n\n\n------------VARIABLE VALUES-------\n\n\n\n\n");
+     // sf_varprint(value1);
+     // sf_varprint(value2);
+     // sf_varprint(value3);
+
+     sf_free(value2);
+     value2 =sf_malloc(80);
+     sf_free(value1);
+     sf_free(value3);
+    //  press_to_cont();
+     // sf_free(value3);
+     // sf_free(value2);
 
     // Tell the user about the fields
     // info("Initialized heap with %dmb of heap space.\n", MAX_HEAP_SIZE >> 20);

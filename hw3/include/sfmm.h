@@ -64,9 +64,7 @@ struct __attribute__((__packed__)) sf_header {
   uint64_t    unused_bits : UNUSED_SIZE_BITS;
   uint64_t  splinter_size : SPLINTER_SIZE_BITS;
   uint64_t   padding_size : PADDING_SIZE_BITS;
-
 };
-
 typedef struct sf_header sf_header;
 
 struct __attribute__((__packed__)) sf_free_header {

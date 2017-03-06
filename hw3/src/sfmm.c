@@ -42,7 +42,14 @@
 #define GET_NEXT_PTR(bp)  (*((char **)(bp) + GET_SIZE(bp)))
 #define GET_PREV_PTR(bp) (*(char **)(bp) - GET_SIZE((char *)(bp) - WSIZE))
 
-
+/*To Keep track of all memory operations*/
+size_t allocatedBlocks =0;
+size_t splinterBlock= 0;
+size_t padding =0;
+size_t splintering =0;
+size_t coalesces =0;
+double peakMemoryUtilization =0.0;
+/* */
 
 static void *coalesce(void *bp);
 
@@ -61,6 +68,9 @@ size_t allignBlock(size_t size);
 void initHeader(sf_header *initHead);
 void initFooter(sf_footer *initFooter);
 
+int freeListLength();
+int totalListLength();
+
 void printEntireList();
 void printFreeList();
 
@@ -70,14 +80,12 @@ void printFreeList();
  * which will allow you to pass the address to sf_snapshot in a different file.
  */
 sf_free_header* freelist_head =NULL;
-static void* sf_heap_listp ;
+static void* sf_heap_listp = NULL ;
 
 void *sf_malloc(size_t size) {
 
-	sf_heap_listp = sf_sbrk(0);
+
 	/*Visualizing*/
-  	printEntireList();
-    printFreeList();
 
 
 
@@ -109,6 +117,7 @@ void *sf_malloc(size_t size) {
 	if ((bp = find_fit(asize)) != NULL){
 
     		place(bp, asize , size , 0);
+    		//printEntireList();
     		return ((char *)bp +WSIZE);
   }
 
@@ -120,11 +129,7 @@ void *sf_malloc(size_t size) {
   	place(bp, asize , size , 0);
 
   	/*Visualizing*/
-  	printEntireList();
-    printFreeList();
-
-
-
+  	//printEntireList();
 	return ((char *)bp + WSIZE);
 
 }
@@ -187,6 +192,7 @@ void *sf_realloc(void *ptr, size_t size) {
   		void * realloc = sf_malloc(size);
   		memcpy(realloc , ptr, current_size);
   		sf_free(ptr);
+  		allocatedBlocks--;
   		return realloc;
   	}
 
@@ -201,7 +207,7 @@ void sf_free(void* ptr) {
 	}
 
 	sf_header * block_header = (sf_header *)((char *)ptr - WSIZE);
-	sf_footer * block_footer = (sf_footer *)FTRP(ptr);
+	sf_footer * block_footer = (sf_footer *)FTRP(block_header);
 
 	if(block_header->alloc!=1 || block_footer->alloc !=1){
 		errno = ENOENT;
@@ -222,11 +228,12 @@ void sf_free(void* ptr) {
 	/*Setting all parameters to 0*/
 	initHeader(block_header);
 	initFooter(block_footer);
+	allocatedBlocks--;
 
 	block_header->block_size = save_size;
 	block_footer->block_size = save_size;
 	/*Creating new Free Block adding to the list*/
-	sf_free_header * freed_block = (sf_free_header *)ptr;
+	sf_free_header * freed_block = (sf_free_header *)block_header;
 	freed_block->header = *block_header;
 	freed_block->next = NULL;
 	freed_block->prev = NULL;
@@ -235,7 +242,6 @@ void sf_free(void* ptr) {
 
 	/*Visualizing*/
   	printEntireList();
-    printFreeList();
 
 }
 
@@ -256,6 +262,8 @@ static void *extend_heap(size_t words) {
   if ((long)(bp = sf_sbrk(size)) == -1){
     return NULL;
   }
+
+
   /* Initialize free block header*/
   initHeader(&((sf_free_header *)bp)->header);
   ((sf_free_header *)bp)->header.block_size = (size)/16;
@@ -263,6 +271,9 @@ static void *extend_heap(size_t words) {
   ((sf_free_header *)bp)->prev = NULL;
   freelist_insertion(bp);
 
+  if(sf_heap_listp==NULL){
+  		sf_heap_listp = bp;
+	}
   /* coalesce bp with next and previous blocks */
   return coalesce(bp);
 }
@@ -346,15 +357,16 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 
 
 	/* Check for Splinters*/
-	int splinter_size = bheader->block_size*16 -asize;
+	int splinter_size = bheader->block_size*16 -asize -DSIZE;
 
 	if(splinter_size >= 32 || flag==1){
 
-		bfooter = (sf_footer *)((char *)bheader + asize+ WSIZE);
+		bfooter = (sf_footer *)((char *)bheader + asize + WSIZE);
 		initFooter(bfooter);
 
 		bheader->alloc =1;
 		bfooter->alloc =1;
+		allocatedBlocks++;
 		bheader->block_size = (asize+DSIZE)/16;
 		bfooter->block_size = (asize+DSIZE)/16;
 
@@ -372,11 +384,12 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 		  coalesce(nptr);
 	}
 	else{
-		bfooter = (sf_footer *)((char *)bheader + asize+ WSIZE +splinter_size);
+		bfooter = (sf_footer *)FTRP(bheader);
 		bheader->alloc =1;
 		bfooter->alloc =1;
-		bheader->block_size = (asize+DSIZE + splinter_size)/16;
-		bfooter->block_size = (asize+DSIZE + splinter_size)/16;
+		allocatedBlocks++;
+
+		bfooter->block_size = bheader->block_size;
 		bheader->splinter =1;
 		bfooter->splinter =1;
 		bheader->splinter_size = splinter_size;
@@ -387,7 +400,7 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 static void freelist_insertion(sf_free_header *newblock){
 
 	sf_free_header *cursor = freelist_head;
-	sf_footer * newblock_footer = (sf_footer *)FTRP(newblock);
+	sf_footer *  newblock_footer = (sf_footer *)FTRP(newblock);
 
 	initFooter(newblock_footer);
 	newblock_footer->block_size = newblock->header.block_size;
@@ -408,12 +421,13 @@ static void freelist_insertion(sf_free_header *newblock){
 		cursor = cursor->next;
 	}
 
-	if(cursor->next ==NULL){
+	/*For the case where tail addition needs to be done*/
+	if(cursor->next ==NULL && cursor<newblock){
 		cursor->next = newblock;
 		newblock->prev = cursor;
 		return;
 	}
-
+	/*Addition before the cursor*/
 	sf_free_header *prev_cursor= cursor->prev;
 	prev_cursor ->next = newblock;
 	newblock->prev = prev_cursor;
@@ -469,24 +483,37 @@ size_t allignBlock(size_t size){
 	return asize;
 }
 
-
-void printEntireList(){
-void * cursor = sf_sbrk(0);
-printf("---------------ENTIRE LIST----------------------------\n");
-while(cursor!= NULL){
-    sf_blockprint(cursor);
-    cursor = GET_NEXT_PTR(cursor);
+int freeListLength(){
+	int counter = 0;
+	sf_free_header * cursor = freelist_head;
+	while(cursor!=NULL){
+    counter++;
+    cursor = cursor->next;
+	}
+	return counter;
 }
-printf("---------------ENTIRE LIST----------------------------\n");
+int totalListLength(){
+	return freeListLength() +allocatedBlocks;
+}
+void printEntireList(){
+	void * cursor = sf_heap_listp;
+	sf_sbrk(0);
+
+	printf("---------------ENTIRE LIST----------------------------\n");
+	for( int i =0 ; i< totalListLength();i++){
+	    sf_blockprint(cursor);
+	    cursor = NEXT_BLOCK(cursor);
+	}
+	printf("---------------ENTIRE LIST----------------------------\n");
 }
 
 void printFreeList(){
-sf_free_header * cursor = freelist_head;
+	sf_free_header * cursor = freelist_head;
 
-printf("---------------FREE LIST----------------------------\n");
-while(cursor!=NULL){
-    sf_blockprint(cursor);
-    cursor = cursor->next;
-}
-printf("---------------FREE LIST----------------------------\n");
+	printf("---------------FREE LIST----------------------------\n");
+	while(cursor!=NULL){
+	    sf_blockprint(cursor);
+	    cursor = cursor->next;
+	}
+	printf("---------------FREE LIST----------------------------\n");
 }
