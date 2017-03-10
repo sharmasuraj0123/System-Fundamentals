@@ -4,7 +4,6 @@
  * If you submit with a main function in this file, you will get a zero.
  */
 #include "sfmm.h"
-#include "helper.h"
 #include <stdio.h>
 #include <stdlib.h>
 
@@ -45,6 +44,8 @@
 /*To Keep track of all memory operations*/
 static size_t allocatedBlocks =0;
 static size_t coalesces= 0;
+static double aggregate_payload =0.0;
+static double max_payload =0.0;
 
 /* */
 
@@ -82,31 +83,30 @@ static void* sf_heap_listp = NULL ;
 void *sf_malloc(size_t size) {
 
 
-	/*Visualizing*/
-	// if(sf_sbrk(0)==NULL){
 
-	// 	sf_mem_init();
-	// 	sf_heap_listp=sf_sbrk(0);
-
-	// 	if (extend_heap(CHUNKSIZE/WSIZE) == NULL)
-	// 		return NULL;
-	// 	freelist_head = sf_heap_listp;
-	// 	initHeader(&freelist_head->header);
-	// 	freelist_head->next =NULL;
-	// 	freelist_head->prev = NULL;
-	// }
+	if(sf_sbrk(0)==NULL){
+		sf_mem_init();
+	}
 
 	size_t asize;
   	size_t extendsize;
   	void *bp;
 
   	/* Empty Case & Out of range Case*/
-  	if (size <= 0 ||size > 16384){
-  		errno =ENOENT;
+  	if (size <= 0 ){
+  		errno =EINVAL;
 		return (NULL);
+  	}
+  	if(size > 16384){
+  		errno =ENOMEM;
+  		return(NULL);
   	}
 
   	asize = allignBlock(size);
+
+		allocatedBlocks++;
+		aggregate_payload +=size;
+		max_payload = MAX(max_payload,aggregate_payload);
 
 	if ((bp = find_fit(asize)) != NULL){
 
@@ -124,14 +124,14 @@ void *sf_malloc(size_t size) {
 
   	/*Visualizing*/
   	//printEntireList();
+
 	return ((char *)bp + WSIZE);
 
 }
 
 void *sf_realloc(void *ptr, size_t size) {
 
-	/*Visualizing*/
-  	printEntireList();
+	// /*Visualizing*/
 
 
 	sf_header * block_header = (sf_header *)((char *)ptr - WSIZE);
@@ -139,38 +139,40 @@ void *sf_realloc(void *ptr, size_t size) {
 
 	/*Checking for all invalid ptrs*/
 	if(ptr == NULL){
-		errno = ENOENT;
+		errno = EINVAL;
 		return (NULL);
 	}
 	if(block_header->alloc!=1 || block_footer->alloc !=1){
-		errno = ENOENT;
+		errno = EINVAL;
 		return (NULL);
 	}
 	if(block_header->block_size !=block_footer->block_size){
-		errno =ENOENT;
+		errno =EINVAL;
 		return (NULL);
 	}
 	if(block_footer->splinter!=block_header->splinter){
-		errno =ENOENT;
+		errno =EINVAL;
 		return (NULL);
 	}
 
 	/* Empty Case & Out of range Case*/
   	if (size <= 0 ||size > 16384){
-  		errno =ENOENT;
+  		errno =EINVAL;
 		return (NULL);
   	}
 
   	/*Divided it in 2 parts*/
   	size_t asize = allignBlock(size);
   	size_t current_size = block_header->block_size*16 - DSIZE;
-
+  	aggregate_payload = aggregate_payload - block_header->requested_size
+  							+size;
+  	max_payload = MAX(max_payload,aggregate_payload);
 
   	/*Part 1: Splitting*/
   	if(asize<=current_size){
   		/*It is the same case while adding*/
   		place(block_header,asize , size ,!GET_ALLOC(NEXT_BLOCK(block_header)));
-  		printEntireList();
+		//printEntireList();
   		return ((char *)block_header +WSIZE);
   	}
   	/*Part 2: Increasing*/
@@ -184,7 +186,7 @@ void *sf_realloc(void *ptr, size_t size) {
 		freelist_removal((sf_free_header *)next_free_block);
 		((sf_footer *)FTRP(block_header))->block_size = block_header->block_size;
 		place(block_header,asize,size,0);
-
+		//printEntireList();
 		return ((char *)block_header + WSIZE);
   	}
   	else{
@@ -194,7 +196,7 @@ void *sf_realloc(void *ptr, size_t size) {
   		void * realloc = sf_malloc(size);
   		memcpy(realloc , ptr, current_size);
   		sf_free(ptr);
-  		allocatedBlocks--;
+  		//printEntireList();
   		return realloc;
   	}
 
@@ -204,7 +206,7 @@ void sf_free(void* ptr) {
 
 	/*Checking for all invalid ptrs*/
 	if(ptr == NULL){
-		errno = ENOENT;
+		errno = EINVAL;
 		return;
 	}
 
@@ -212,25 +214,28 @@ void sf_free(void* ptr) {
 	sf_footer * block_footer = (sf_footer *)FTRP(block_header);
 
 	if(block_header->alloc!=1 || block_footer->alloc !=1){
-		errno = ENOENT;
+		errno = EINVAL;
 		return;
 	}
 	if(block_header->block_size !=block_footer->block_size){
-		errno =ENOENT;
+		errno =EINVAL;
 		return;
 	}
 	if(block_footer->splinter!=block_header->splinter){
-		errno =ENOENT;
+		errno =EINVAL;
 		return;
 	}
 
 	/*Saving the size of block*/
 	size_t save_size = block_header->block_size;
+	/*Memory Part*/
+	aggregate_payload= aggregate_payload-((save_size -1)*16);
+	allocatedBlocks--;
 
 	/*Setting all parameters to 0*/
 	initHeader(block_header);
 	initFooter(block_footer);
-	allocatedBlocks--;
+
 
 	block_header->block_size = save_size;
 	block_footer->block_size = save_size;
@@ -248,6 +253,7 @@ void sf_free(void* ptr) {
 }
 
 int sf_info(info* ptr) {
+	size_t heapSize =0;
 
 	ptr->allocatedBlocks=allocatedBlocks;
 	ptr->splinterBlocks= 0;
@@ -257,6 +263,10 @@ int sf_info(info* ptr) {
 	ptr->peakMemoryUtilization =0.0;
 
 	void * cursor = sf_heap_listp;
+
+	if(cursor==NULL)
+		return -1;
+
 	for (int i = 0; i < totalListLength(); i++)
 	{
 		if(GET_ALLOC(cursor)==1){
@@ -264,11 +274,23 @@ int sf_info(info* ptr) {
 			ptr->padding +=((sf_header*) cursor)->padding_size;
 			ptr->splintering +=((sf_header*) cursor)->splinter_size;
 		}
+
+		/*The actual heap size is times 16*/
+		heapSize+= ((sf_header*) cursor)->block_size *16;
 	    cursor = NEXT_BLOCK(cursor);
 
 	}
 
-	return -1;
+	ptr->peakMemoryUtilization = max_payload/heapSize;
+
+
+
+	/*Delete before Submitting*/
+	// sf_snapshot(true);
+	// printf("Max Payload: %lf\n",max_payload);
+	// printf("Heap Size: %ld\n",heapSize);
+	/* */
+	return 0;
 }
 
 static void *extend_heap(size_t words) {
@@ -328,6 +350,7 @@ static void *coalesce (void* bp){
 	/*Setting them a random positvie value to avoid*/
 	size_t next_Alloc = 10;
 	size_t prev_Alloc = 10;
+	coalesces++;
 
 	sf_free_header * next_free_block =  current->next;
 	sf_free_header * prev_free_block = current->prev;
@@ -361,6 +384,9 @@ static void *coalesce (void* bp){
 		bp =prev_free_block;
 		((sf_footer *)FTRP(bp))->block_size =prev_free_block->header.block_size;
 	}
+	else{
+		coalesces--;
+	}
 
 	return bp;
 }
@@ -372,8 +398,6 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 	if(bheader->alloc ==0)
 		freelist_removal(bp);
 
-	if(bheader->alloc!=1)
-		allocatedBlocks++;
 
 	/*Accounting_for padding*/
 	int padding = asize - rsize;
@@ -383,6 +407,9 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 
 	/* Check for Splinters*/
 	int splinter_size = bheader->block_size*16 -asize -DSIZE;
+
+
+
 
 	if(splinter_size >= 32 || flag==1){
 
@@ -426,7 +453,6 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 		  nptr->prev = NULL;
 
 		  freelist_insertion(nptr);
-		  printFreeList();
 		  coalesce(nptr);
 	}
 	else{
@@ -526,7 +552,7 @@ size_t allignBlock(size_t size){
   	if (size <= DSIZE)
     	asize = DSIZE;
   	else
-		asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
+		asize = DSIZE * ((size + DSIZE) / DSIZE);
 
 	return asize;
 }
