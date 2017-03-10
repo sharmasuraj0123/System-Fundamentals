@@ -56,119 +56,8 @@
 
 int main(int argc, char *argv[]) {
      // Initialize the custom allocator
-     //sf_mem_init(MAX_HEAP_SIZE);
+     sf_mem_init(MAX_HEAP_SIZE);
 
-    // void *val = sf_malloc(9);
-    // void *val2 = sf_malloc(90);
-    // void *val3 = sf_malloc(98);
-    // void *val4 = sf_malloc(90);
-    // void *val5 = sf_malloc(96);
-    // void *val6 = sf_malloc(944);
-    // void *val7 = sf_malloc(19);
-    // void *val8 = sf_malloc(94);
-
-    // press_to_cont();
-
-    // sf_free(val3);
-    // press_to_cont();
-    // sf_free(val);
-    // press_to_cont();
-    // sf_free(val8);
-    // press_to_cont();
-    // sf_free(val4);
-    // press_to_cont();
-    // sf_free(val2);
-    // press_to_cont();
-    // sf_free(val6);
-    // press_to_cont();
-    // sf_free(val7);
-    // press_to_cont();
-    // sf_free(val5);
-    // press_to_cont();
-    // press_to_cont();
-
-    // info * testInfo = sf_malloc(sizeof(info));
-
-    // /*Print info*/
-    //     sf_info(testInfo);
-    //     printf("Number of Allocated Blocks :%ld\n",testInfo->allocatedBlocks);
-    //     printf("Number of Splinter Blocks :%ld\n",testInfo->splinterBlocks);
-    //     printf("Padding Bytes :%ld\n",testInfo->padding);
-    //     printf("Splintering Bytes :%ld\n",testInfo->splintering);
-    //     printf("Number of coalesces Blocks :%ld\n",testInfo->coalesces);
-    //     printf("Peak Memory Utilization :%lf\n",testInfo->peakMemoryUtilization);
-
-    //     press_to_cont();
-    // /*  */
-
-    // int *value1 = sf_malloc(sizeof(int));
-
-    // /*Print info*/
-    //     sf_info(testInfo);
-    //     printf("Number of Allocated Blocks :%ld\n",testInfo->allocatedBlocks);
-    //     printf("Number of Splinter Blocks :%ld\n",testInfo->splinterBlocks);
-    //     printf("Padding Bytes :%ld\n",testInfo->padding);
-    //     printf("Splintering Bytes :%ld\n",testInfo->splintering);
-    //     printf("Number of coalesces Blocks :%ld\n",testInfo->coalesces);
-    //     printf("Peak Memory Utilization :%lf\n",testInfo->peakMemoryUtilization);
-
-    //     press_to_cont();
-    // /*  */
-
-    // sf_realloc(value1,80);
-    // /*Print info*/
-    //     sf_info(testInfo);
-    //     printf("Number of Allocated Blocks :%ld\n",testInfo->allocatedBlocks);
-    //     printf("Number of Splinter Blocks :%ld\n",testInfo->splinterBlocks);
-    //     printf("Padding Bytes :%ld\n",testInfo->padding);
-    //     printf("Splintering Bytes :%ld\n",testInfo->splintering);
-    //     printf("Number of coalesces Blocks :%ld\n",testInfo->coalesces);
-    //     printf("Peak Memory Utilization :%lf\n",testInfo->peakMemoryUtilization);
-
-    //     press_to_cont();
-    // /*  */
-    //  //int *value2 = sf_malloc(96);
-    // sf_free(value1);
-    // /*Print info*/
-    //     sf_info(testInfo);
-    //     printf("Number of Allocated Blocks :%ld\n",testInfo->allocatedBlocks);
-    //     printf("Number of Splinter Blocks :%ld\n",testInfo->splinterBlocks);
-    //     printf("Padding Bytes :%ld\n",testInfo->padding);
-    //     printf("Splintering Bytes :%ld\n",testInfo->splintering);
-    //     printf("Number of coalesces Blocks :%ld\n",testInfo->coalesces);
-    //     printf("Peak Memory Utilization :%lf\n",testInfo->peakMemoryUtilization);
-
-    //     press_to_cont();
-    /*  */
-    //  press_to_cont();
-    // char * value3 =sf_malloc(30*sizeof(char *));
-
-
-
-
-     // printf("\n\n\n\n\n\n------------VARIABLE VALUES-------\n\n\n\n\n");
-     // sf_varprint(value1);
-     // sf_varprint(value2);
-     // sf_varprint(value3);
-
-    //  void * value4 = sf_malloc(4);
-    //  sf_free(value3);
-    //  sf_realloc(value2,3937);
-    //  sf_free(value1);
-    //  value1 =sf_malloc(100);
-    //  sf_free(value4);
-     // void * value4 = sf_malloc(3937);
-     // sf_realloc(value4,240);
-     // //sf_varprint(value4);
-     // //sf_free(value2);
-     // sf_free(value4);
-         //  press_to_cont();
-     // sf_free(value3);
-     // sf_free(value2);
-
-    // //Tell the user about the fields
-    // info("Initialized heap with %dmb of heap space.\n", MAX_HEAP_SIZE >> 20);
-    // press_to_cont();
 
     // Print out title for first test
     printf("=== Test1: Allocation test ===\n");
@@ -233,19 +122,6 @@ int main(int argc, char *argv[]) {
     sf_free(memory);
     press_to_cont();
 
-    // void *val = sf_malloc(16);
-    // void *val2 = sf_malloc(32);
-    // void *val3 = sf_malloc(48);
-    // void *val4 = sf_malloc(64);
-    // void *val5 = sf_malloc(64);
-
-    // sf_free(val2);
-    // sf_free(val4);
-    // val2 =sf_malloc(48);
-    // sf_free(val);
-    // press_to_cont();
-    // sf_free(val3);
-    // sf_free(val5);
     sf_mem_fini();
 
     return EXIT_SUCCESS;
