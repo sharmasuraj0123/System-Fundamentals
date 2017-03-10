@@ -31,7 +31,7 @@
 #define GET_ALLOC(p) (GET(p) & 0x1)
 #define GET_SPLINTER (p) (GET(p) & 0x4)
 
-
+/*Computes the address of the footer from the Header*/
 #define FTRP(bp) (( char *)(bp) + GET_SIZE(bp)- WSIZE)
 
 /* Given block ptr bp, compute address of next and previous blocks */
@@ -43,12 +43,9 @@
 #define GET_PREV_PTR(bp) (*(char **)(bp) - GET_SIZE((char *)(bp) - WSIZE))
 
 /*To Keep track of all memory operations*/
-size_t allocatedBlocks =0;
-size_t splinterBlock= 0;
-size_t padding =0;
-size_t splintering =0;
-size_t coalesces =0;
-double peakMemoryUtilization =0.0;
+static size_t allocatedBlocks =0;
+static size_t coalesces= 0;
+
 /* */
 
 static void *coalesce(void *bp);
@@ -86,9 +83,6 @@ void *sf_malloc(size_t size) {
 
 
 	/*Visualizing*/
-
-
-
 	// if(sf_sbrk(0)==NULL){
 
 	// 	sf_mem_init();
@@ -107,7 +101,7 @@ void *sf_malloc(size_t size) {
   	void *bp;
 
   	/* Empty Case & Out of range Case*/
-  	if (size == 0 ||size > 16384){
+  	if (size <= 0 ||size > 16384){
   		errno =ENOENT;
 		return (NULL);
   	}
@@ -136,8 +130,12 @@ void *sf_malloc(size_t size) {
 
 void *sf_realloc(void *ptr, size_t size) {
 
+	/*Visualizing*/
+  	printEntireList();
+
+
 	sf_header * block_header = (sf_header *)((char *)ptr - WSIZE);
-	sf_footer * block_footer = (sf_footer *)FTRP(ptr);
+	sf_footer * block_footer = (sf_footer *)FTRP(block_header);
 
 	/*Checking for all invalid ptrs*/
 	if(ptr == NULL){
@@ -158,7 +156,7 @@ void *sf_realloc(void *ptr, size_t size) {
 	}
 
 	/* Empty Case & Out of range Case*/
-  	if (size == 0 ||size > 16384){
+  	if (size <= 0 ||size > 16384){
   		errno =ENOENT;
 		return (NULL);
   	}
@@ -171,18 +169,22 @@ void *sf_realloc(void *ptr, size_t size) {
   	/*Part 1: Splitting*/
   	if(asize<=current_size){
   		/*It is the same case while adding*/
-  		place(block_header,asize , size ,!GET_ALLOC(NEXT_BLOCK(ptr)));
+  		place(block_header,asize , size ,!GET_ALLOC(NEXT_BLOCK(block_header)));
+  		printEntireList();
   		return ((char *)block_header +WSIZE);
   	}
   	/*Part 2: Increasing*/
   	/*If next Block is free*/
-  	if(!GET_ALLOC(NEXT_BLOCK(ptr)) &&
-  		GET_SIZE(NEXT_BLOCK(ptr))+current_size >=asize){
+  	if(!GET_ALLOC(NEXT_BLOCK(block_header)) &&
+  		GET_SIZE(NEXT_BLOCK(block_header))+current_size >=asize){
 
-  		block_header->block_size += ((sf_header *)NEXT_BLOCK(ptr))->block_size;
-		freelist_removal((sf_free_header *)NEXT_BLOCK(ptr));
+  		sf_header * next_free_block = ((sf_header *)NEXT_BLOCK(block_header));
+
+  		block_header->block_size += next_free_block->block_size;
+		freelist_removal((sf_free_header *)next_free_block);
 		((sf_footer *)FTRP(block_header))->block_size = block_header->block_size;
 		place(block_header,asize,size,0);
+
 		return ((char *)block_header + WSIZE);
   	}
   	else{
@@ -241,11 +243,31 @@ void sf_free(void* ptr) {
 	coalesce(freed_block);
 
 	/*Visualizing*/
-  	printEntireList();
+  	//printEntireList();
 
 }
 
 int sf_info(info* ptr) {
+
+	ptr->allocatedBlocks=allocatedBlocks;
+	ptr->splinterBlocks= 0;
+	ptr->padding =0;
+	ptr->splintering =0;
+	ptr->coalesces =coalesces;
+	ptr->peakMemoryUtilization =0.0;
+
+	void * cursor = sf_heap_listp;
+	for (int i = 0; i < totalListLength(); i++)
+	{
+		if(GET_ALLOC(cursor)==1){
+			ptr->splinterBlocks += ((sf_header*) cursor)->splinter;
+			ptr->padding +=((sf_header*) cursor)->padding_size;
+			ptr->splintering +=((sf_header*) cursor)->splinter_size;
+		}
+	    cursor = NEXT_BLOCK(cursor);
+
+	}
+
 	return -1;
 }
 
@@ -320,7 +342,7 @@ static void *coalesce (void* bp){
 	if(!next_Alloc && prev_Alloc){
 		current->header.block_size += next_free_block->header.block_size;
 		freelist_removal(next_free_block);
-		((sf_footer *)FTRP(bp))->block_size =current->header.block_size;
+		((sf_footer *)FTRP(current))->block_size =current->header.block_size;
 	}
 	/*Only PREVOIUS is free*/
 	else if(next_Alloc && !prev_Alloc){
@@ -350,6 +372,9 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 	if(bheader->alloc ==0)
 		freelist_removal(bp);
 
+	if(bheader->alloc!=1)
+		allocatedBlocks++;
+
 	/*Accounting_for padding*/
 	int padding = asize - rsize;
 	bheader->padding_size = padding;
@@ -366,9 +391,30 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 
 		bheader->alloc =1;
 		bfooter->alloc =1;
-		allocatedBlocks++;
+
 		bheader->block_size = (asize+DSIZE)/16;
 		bfooter->block_size = (asize+DSIZE)/16;
+
+		/*Special case only when next block is free and there is a splinter*/
+		if(splinter_size < 32){
+			sf_free_header  * adjacentBlock = (sf_free_header *)((char *)bheader+
+														splinter_size+ asize + DSIZE);
+			sf_header *saveheader = &adjacentBlock->header;
+			sf_free_header* saveNext = adjacentBlock->next;
+			sf_free_header* savePrev = adjacentBlock->prev;
+
+			sf_free_header * nptr = (sf_free_header *)((char *)bheader+ asize + DSIZE);
+			nptr->header.block_size = (splinter_size)/16 + saveheader->block_size;
+		  	nptr->next =saveNext;
+		  	nptr->prev = savePrev;
+		  	if(saveNext!=NULL)
+		  		saveNext->prev = nptr;
+		  	if(savePrev!=NULL)
+		  		savePrev->next = nptr;
+
+		  	((sf_footer *)FTRP(nptr))->block_size =nptr->header.block_size;
+		  	return;
+			}
 
 		/*No Splinters, Hence Split the block*/
 		size_t new_size = splinter_size;
@@ -379,15 +425,14 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 		  nptr->next =NULL;
 		  nptr->prev = NULL;
 
-
 		  freelist_insertion(nptr);
+		  printFreeList();
 		  coalesce(nptr);
 	}
 	else{
 		bfooter = (sf_footer *)FTRP(bheader);
 		bheader->alloc =1;
 		bfooter->alloc =1;
-		allocatedBlocks++;
 
 		bfooter->block_size = bheader->block_size;
 		bheader->splinter =1;
@@ -400,8 +445,8 @@ static void place(void *bp, size_t asize , size_t rsize , short flag){
 static void freelist_insertion(sf_free_header *newblock){
 
 	sf_free_header *cursor = freelist_head;
-	sf_footer *  newblock_footer = (sf_footer *)FTRP(newblock);
 
+	sf_footer *  newblock_footer = (sf_footer *)FTRP(newblock);
 	initFooter(newblock_footer);
 	newblock_footer->block_size = newblock->header.block_size;
 
@@ -475,10 +520,13 @@ void initFooter(sf_footer *initFooter){
 size_t allignBlock(size_t size){
 	size_t asize;
 /* Allign the Blocks */
+	if(size %16==0)
+		return size;
+
   	if (size <= DSIZE)
     	asize = DSIZE;
   	else
-		asize = DSIZE * ((size + DSIZE + (DSIZE - 1)) / DSIZE);
+		asize = DSIZE * ((size + (DSIZE) + (DSIZE-1)) / DSIZE);
 
 	return asize;
 }
@@ -497,7 +545,6 @@ int totalListLength(){
 }
 void printEntireList(){
 	void * cursor = sf_heap_listp;
-	sf_sbrk(0);
 
 	printf("---------------ENTIRE LIST----------------------------\n");
 	for( int i =0 ; i< totalListLength();i++){

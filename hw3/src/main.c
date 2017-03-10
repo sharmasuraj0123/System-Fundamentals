@@ -66,11 +66,18 @@ int main(int argc, char *argv[]) {
      // sf_varprint(value2);
      // sf_varprint(value3);
 
-     sf_free(value2);
-     value2 =sf_malloc(80);
-     sf_free(value1);
+     void * value4 = sf_malloc(4);
      sf_free(value3);
-    //  press_to_cont();
+     sf_realloc(value2,80);
+
+     sf_free(value1);
+     sf_free(value4);
+     // void * value4 = sf_malloc(3937);
+     // sf_realloc(value4,240);
+     // //sf_varprint(value4);
+     // //sf_free(value2);
+     // sf_free(value4);
+         //  press_to_cont();
      // sf_free(value3);
      // sf_free(value2);
 
