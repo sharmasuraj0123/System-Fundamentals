@@ -30,7 +30,7 @@ int main(int argc, char const *argv[], char* envp[]){
         while(args[count++] != NULL)
             args[count]= strtok(NULL , " ");
 
-        sfish_analyze(args ,envp);
+        sfish_analyze(args ,count-1,envp);
 
         if(getcwd(pwd ,sizeof(pwd))==NULL)
             perror("Incorrect Path");

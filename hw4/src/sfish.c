@@ -10,8 +10,14 @@ char *builtins[NUMBER_OF_BUILTINS] = {
 	"exit"
 };
 
+char *redirection[NUMBER_OF_REDIRECTIONS] ={
+	"<",
+	">",
+	"|"
+};
 
-int sfish_analyze(char **cmd ,char* envp[]){
+
+int sfish_analyze(char **cmd ,int cmdc,char* envp[]){
 
 /*Loop to check for builtins first.*/
 for(int i =0;i<NUMBER_OF_BUILTINS;i++){
@@ -19,7 +25,65 @@ for(int i =0;i<NUMBER_OF_BUILTINS;i++){
 		return sfish_builtin(cmd,i);
 }
 
+/*Loop to check for Redirection symbols*/
+for (int i = 0; i < cmdc; i++)
+	for(int j =0; j<NUMBER_OF_REDIRECTIONS;j++)
+		if(strcmp(cmd[i],redirection[j])==0)
+			return sfish_redirection(cmd,cmdc ,i , envp);
+
+
 return  sfish_execute(cmd ,envp);
+}
+
+
+int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
+
+	char symbol = *cmd[first];
+
+
+
+	pid_t pid;
+	int status;
+
+  	pid = Fork();
+
+  	if (pid == 0){
+		/*There are only 5 possible cases of redirection :*/
+
+		/*Only one possible case
+		* prog1 [ARGS] > output.txt
+		*/
+		if(symbol == '>'){
+
+			/*Opening coppying and closing the output file*/
+			int out;
+
+			if((out = open(cmd[first+1], O_WRONLY
+				| O_TRUNC | O_CREAT, S_IRUSR |
+				S_IRGRP | S_IWGRP | S_IWUSR)) <0){
+	  				perror("open");
+					return 1;
+	  			}
+	  		dup2(out, 1);
+	  		/*Creating new argument array*/
+	  		char **args = malloc(MAX_SIZE*sizeof(char));
+
+	  		for (int i = 0; i < first; ++i)
+	  			strcpy(args[i] ,cmd[i]);
+
+	  		close(out);
+	  		sfish_execute(args,envp);
+
+		}
+	}else{
+		// Parent process
+    	do {
+      		waitpid(pid, &status, WUNTRACED);
+    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+	}
+
+
+	return 1;
 }
 
 int sfish_execute(char **cmd ,char* envp[]){

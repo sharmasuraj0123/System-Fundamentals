@@ -6,6 +6,8 @@
 #include <stdlib.h>
 #include <stdio.h>
 
+
+#include <fcntl.h>
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
@@ -16,6 +18,7 @@
 
 #define MAX_SIZE 1024
 #define NUMBER_OF_BUILTINS 4
+#define NUMBER_OF_REDIRECTIONS 3
 
 
 /*Declared pwd outside so that it can be accessed by all*/
@@ -34,7 +37,7 @@ char ** getCommonPaths();
 * Where it analyzes it as built in or a program;
 * And will call teh functions appropriately.
 */
-int sfish_analyze(char **cmd ,char* envp[]);
+int sfish_analyze(char **cmd ,int cmdc,char* envp[]);
 /*
 * This function is to excute the program in the shell.
 */
@@ -44,6 +47,13 @@ int sfish_execute(char **cmd ,char* envp[]);
 * The mode will specify which built in function is called.
 */
 int sfish_builtin(char **cmd , int mode);
+/*
+*This function will handle all the inputs with redirection
+* @param cmdc : the number of arguments.
+* @param first : is the first appeared instance of redirections
+*/
+int sfish_redirection(char **cmd , int cmdc , int first , char* envp[]);
+
 
 
 #define HELP() do{                                                        \
