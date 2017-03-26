@@ -86,9 +86,9 @@ if(mode==0){
 
 /*To perform Help*/
 else if(mode==1){
-		HELP(0);
-		if(pid==0)
-			exit(0);
+	if(pid==0)
+		exit(0);
+	HELP();
 	}
 else if(mode==2){
 

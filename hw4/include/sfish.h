@@ -39,7 +39,7 @@ int sfish_execute(char **cmd);
 int sfish_builtin(char **cmd , int mode);
 
 
-#define HELP(retcode) do{                                                        \
+#define HELP() do{                                                        \
 fprintf(stderr, "%s\n",                                                           \
 "usage: ./hw1 [-s | -t | -h]\n"                                                   \
 "    -s       Substitution cipher\n"                                              \
@@ -62,7 +62,6 @@ fprintf(stderr, "%s\n",                                                         
 "                             which specifies stdout.\n"                          \
 "\n"                                                                              \
 "    -h       Display this help menu.");                                          \
-exit(retcode);                                                                    \
 } while(0)
 
 #endif
