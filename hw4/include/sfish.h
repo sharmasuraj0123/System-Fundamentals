@@ -21,11 +21,13 @@
 /*Declared pwd outside so that it can be accessed by all*/
 char pwd[MAX_SIZE];
 char prev_pwd[MAX_SIZE];
+char **commonPaths;
 
 /*For safe wrapping around fork*/
 void unix_error(char *msg);
 pid_t Fork(void);
 int file_exist (char *filename);
+char ** getCommonPaths();
 
 /*
 * This function is the first step of the shell

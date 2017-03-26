@@ -32,22 +32,39 @@ int sfish_execute(char **cmd ,char* envp[]){
 	    /* Child process*/
 	    /*It contains 2 types of excutable file:*/
 	    /*Type 1: contains / in beggining, has complete path*/
-  		if(**cmd =='/'){
-  			if(file_exist(*cmd)){
-	  			if (execve(*cmd, cmd,envp) <0)
-		      		printf("%s: Command not found.\n",*cmd);
-		      	/*This program will only return if any failure*/
-		    		exit(EXIT_FAILURE);
-		    }else{
-		    	printf("%s: File doesn't Exist\n",*cmd);
-		    }
-  		}
-	    /*Type 2: If the name of the executable does not contain a /,
+
+  		/*Type 2: If the name of the executable does not contain a /,
 	     *search the PATH environment variable for such an executable.
 	    */
-	    else{
+  		if(**cmd !='/'){
 
-	    }
+  			/*To check which of the path actually exists*/
+	    	char * cursor = malloc(MAX_SIZE*sizeof(char));
+	    	int count =0;
+
+    		while(cursor != NULL){
+    			strcpy(cursor,commonPaths[count]);
+    			strcat(cursor,"/");
+    			strcat(cursor,cmd[0]);
+
+        		if(file_exist(cursor)){
+        			break;
+        		}
+        		count++;
+    		}
+    		strcpy(cmd[0],cursor);
+  		}
+
+  		if(file_exist(*cmd)){
+	  		if (execve(*cmd, cmd,envp) <0)
+		    printf("%s: Command not found.\n",*cmd);
+		    /*This program will only return if any failure*/
+		    exit(EXIT_FAILURE);
+
+		}
+		else{
+		    	printf("%s: File doesn't Exist\n",*cmd);
+		    }
   }else {
     // Parent process
     	do {
@@ -152,3 +169,19 @@ int file_exist (char *filename)
   struct stat   buffer;
   return (stat (filename, &buffer) == 0);
 }
+
+char ** getCommonPaths(){
+
+	char **commonPaths = malloc(MAX_SIZE*sizeof(char));
+    char *cursor= getenv("PATH");
+    commonPaths[0] = strtok(cursor ,":");
+    int count =0;
+    while(commonPaths[count] != NULL){
+        //printf("%s\n",commonPaths[count]);
+        count++;
+        commonPaths[count]= strtok(NULL , ":");
+    }
+
+    return commonPaths;
+}
+

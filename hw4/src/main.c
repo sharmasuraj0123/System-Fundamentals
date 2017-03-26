@@ -10,6 +10,7 @@ int main(int argc, char const *argv[], char* envp[]){
     rl_catch_signals = 0;
     /* This is disable readline's default signal handlers, since you are going to install your own.*/
     char *cmd;
+    commonPaths = getCommonPaths();
 
     if(getcwd(pwd ,sizeof(pwd))==NULL)
         perror("Incorrect Path");
@@ -47,6 +48,8 @@ int main(int argc, char const *argv[], char* envp[]){
 
     /* Don't forget to free allocated memory, and close file descriptors.
      */
+    if(commonPaths!=NULL)
+        free(commonPaths);
     if(a!=NULL)
         free(a);
     free(cmd);
