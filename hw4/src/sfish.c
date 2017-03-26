@@ -39,7 +39,7 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	pid_t pid;
 	int status;
 
-	size_t args_size = (size_t)cmd[2] - (size_t)cmd[0];
+	size_t args_size = (size_t)cmd[first] - (size_t)cmd[0];
   	pid = Fork();
 
   	if (pid == 0){
@@ -138,6 +138,78 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	  			exit(0);
 			}
 
+		}
+		/* Case IV & Case V
+		* Two possible cases
+		*/
+		else if(symbol == '|'){
+			int second = check_for_redirection_symbol(&(cmd[first +1]), cmdc-first-1);
+
+			/*Multiple piping commands*/
+			if(second > 0){
+
+			}
+			/*Only one piping command*/
+			/*prog1 [ARGS] | prog2 [ARGS]*/
+			else{
+
+				int pipe_fd[2];
+				int pipe_pid;
+
+				pipe(pipe_fd);
+				pipe_pid = Fork();
+
+				/*Child handles prog1*/
+				if(pipe_pid==0){
+
+					dup2(pipe_fd[1],1);
+
+
+					char **args = malloc(MAX_SIZE*sizeof(char));
+        			memcpy(args ,cmd,args_size);
+
+        			/*Execute the program and exit the child & free the memory*/
+	  				sfish_analyze(args,first,envp);
+	  				if(args!=NULL)
+	  					free(args);
+
+	  				exit(0);
+				}
+				/*parent handles prog2*/
+				else{
+					do {
+			      		waitpid(pid, &status, WUNTRACED);
+			    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+
+			    	dup2(pipe_fd[0],0);
+					close(pipe_fd[1]);
+					close(pipe_fd[1]);
+
+			    	/*Length of each string including the \0 terminator*/
+			    	int new_size = 0;
+			    	for(int i=first+1; i <cmdc;i++){
+			    		new_size+= strlen(cmd[i]) + 1;
+			    	}
+
+			    	//printf("%d\n",new_size);
+
+			    	char **args = malloc(MAX_SIZE*sizeof(char));
+        			memcpy(args ,&cmd[first+1],new_size);
+
+        			 //printf("%s\n",args[0]);
+        			// printf("%ld\n",strlen(args[0]));
+        			/*Execute the program and exit the child & free the memory*/
+	  				sfish_analyze(args,first,envp);
+
+	  				if(args!=NULL)
+	  					free(args);
+	  				exit(0);
+				}
+			}
+		}
+		else{
+			/*To do later*/
 		}
 	}else{
 		// Parent process
