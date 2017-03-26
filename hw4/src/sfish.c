@@ -37,7 +37,6 @@ int sfish_execute(char **cmd ,char* envp[]){
 	     *search the PATH environment variable for such an executable.
 	    */
   		if(**cmd !='/'){
-
   			/*To check which of the path actually exists*/
 	    	char * cursor = malloc(MAX_SIZE*sizeof(char));
 	    	int count =0;
@@ -52,15 +51,16 @@ int sfish_execute(char **cmd ,char* envp[]){
         		}
         		count++;
     		}
-    		strcpy(cmd[0],cursor);
-  		}
+    		cmd[0] = cursor;
 
+    		if(cursor!=NULL)
+    			free(cursor);
+  		}
   		if(file_exist(*cmd)){
 	  		if (execve(*cmd, cmd,envp) <0)
 		    printf("%s: Command not found.\n",*cmd);
 		    /*This program will only return if any failure*/
 		    exit(EXIT_FAILURE);
-
 		}
 		else{
 		    	printf("%s: File doesn't Exist\n",*cmd);
