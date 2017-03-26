@@ -11,7 +11,7 @@ char *builtins[NUMBER_OF_BUILTINS] = {
 };
 
 
-int sfish_analyze(char **cmd){
+int sfish_analyze(char **cmd ,char* envp[]){
 
 /*Loop to check for builtins first.*/
 for(int i =0;i<NUMBER_OF_BUILTINS;i++){
@@ -19,29 +19,41 @@ for(int i =0;i<NUMBER_OF_BUILTINS;i++){
 		return sfish_builtin(cmd,i);
 }
 
-return  sfish_execute(cmd);
+return  sfish_execute(cmd ,envp);
 }
 
-int sfish_execute(char **cmd){
+int sfish_execute(char **cmd ,char* envp[]){
 
 	pid_t pid;
 	int status;
 
   	pid = Fork();
   	if (pid == 0){
+	    /* Child process*/
+	    /*It contains 2 types of excutable file:*/
+	    /*Type 1: contains / in beggining, has complete path*/
+  		if(**cmd =='/'){
+  			if(file_exist(*cmd)){
+	  			if (execve(*cmd, cmd,envp) <0)
+		      		printf("%s: Command not found.\n",*cmd);
+		      	/*This program will only return if any failure*/
+		    		exit(EXIT_FAILURE);
+		    }else{
+		    	printf("%s: File doesn't Exist\n",*cmd);
+		    }
+  		}
+	    /*Type 2: If the name of the executable does not contain a /,
+	     *search the PATH environment variable for such an executable.
+	    */
+	    else{
 
-	    // Child process
-	    if (execvp(*cmd, cmd) == -1) {
-	      perror("lsh");
 	    }
-	    exit(EXIT_FAILURE);
   }else {
     // Parent process
     	do {
       		waitpid(pid, &status, WUNTRACED);
     	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
   }
-
 return 1;
 }
 
@@ -135,6 +147,8 @@ unix_error("Fork error");
 return pid;
 }
 
-
-
-
+int file_exist (char *filename)
+{
+  struct stat   buffer;
+  return (stat (filename, &buffer) == 0);
+}

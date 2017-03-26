@@ -2,12 +2,17 @@
 #define SFISH_H
 #include <readline/readline.h>
 #include <readline/history.h>
+
 #include <stdlib.h>
 #include <stdio.h>
+
 #include <unistd.h>
 #include <string.h>
 #include <errno.h>
+
 #include <sys/wait.h>
+#include <sys/types.h>
+#include <sys/stat.h>
 
 #define MAX_SIZE 1024
 #define NUMBER_OF_BUILTINS 4
@@ -20,18 +25,18 @@ char prev_pwd[MAX_SIZE];
 /*For safe wrapping around fork*/
 void unix_error(char *msg);
 pid_t Fork(void);
-
+int file_exist (char *filename);
 
 /*
 * This function is the first step of the shell
 * Where it analyzes it as built in or a program;
 * And will call teh functions appropriately.
 */
-int sfish_analyze(char **cmd);
+int sfish_analyze(char **cmd ,char* envp[]);
 /*
 * This function is to excute the program in the shell.
 */
-int sfish_execute(char **cmd);
+int sfish_execute(char **cmd ,char* envp[]);
 /*
 * This function is to handle builtins.
 * The mode will specify which built in function is called.
