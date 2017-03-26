@@ -13,25 +13,39 @@ char *builtins[NUMBER_OF_BUILTINS] = {
 
 int sfish_analyze(char **cmd){
 
-
-char * operation =strtok(*cmd," ");
-
 /*Loop to check for builtins first.*/
 for(int i =0;i<NUMBER_OF_BUILTINS;i++){
-	if(strcmp(operation,builtins[i])==0)
+	if(strcmp(cmd[0],builtins[i])==0)
 		return sfish_builtin(cmd,i);
 }
 
-
-return 0;
+return  sfish_execute(cmd);
 }
 
 int sfish_execute(char **cmd){
-return 0;
+
+	pid_t pid;
+	int status;
+
+  	pid = Fork();
+  	if (pid == 0){
+
+	    // Child process
+	    if (execvp(*cmd, cmd) == -1) {
+	      perror("lsh");
+	    }
+	    exit(EXIT_FAILURE);
+  }else {
+    // Parent process
+    	do {
+      		waitpid(pid, &status, WUNTRACED);
+    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+  }
+
+return 1;
 }
 
 int sfish_builtin(char **cmd , int mode){
-
 pid_t pid;
 int child_status;
 pid = Fork();
@@ -44,7 +58,7 @@ if(mode==0){
 
 	if(pid==0)
 		exit(0);
-	char *path  = strtok(NULL," ");
+	char *path  = cmd[1];
 	//printf("path :%s\n",path);
 		if (path==NULL){
 			strcpy(pwd,"/home");
@@ -82,14 +96,13 @@ if(mode==0){
 	if(tempPrev !=NULL)
 		free(tempPrev);
 }
-
-
 /*To perform Help*/
 else if(mode==1){
 	if(pid==0)
 		exit(0);
 	HELP();
 	}
+/*PWD - showing the full path*/
 else if(mode==2){
 
 		if(pid ==0){
@@ -100,9 +113,11 @@ else if(mode==2){
 		wait(&child_status);
 		}
 	}
+/*Exit case*/
 else{
 		exit(0);
 	}
+
 return 1;
 }
 

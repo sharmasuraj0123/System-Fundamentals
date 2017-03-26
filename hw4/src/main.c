@@ -20,10 +20,16 @@ int main(int argc, char const *argv[], char* envp[]){
 
     while((cmd = readline(a)) != NULL) {
 
+        /*Analyzing the shell and all this commands*/
 
-        /*Analyzing the shell and all tis commands*/
-        sfish_analyze(&cmd);
+        char **args = malloc(MAX_SIZE*sizeof(char));
 
+        args[0] = strtok(cmd ," ");
+        int count =0;
+        while(args[count++] != NULL)
+            args[count]= strtok(NULL , " ");
+
+        sfish_analyze(args);
 
         if(getcwd(pwd ,sizeof(pwd))==NULL)
             perror("Incorrect Path");
@@ -35,6 +41,8 @@ int main(int argc, char const *argv[], char* envp[]){
         /* Use the `make debug` target in the makefile to run with these enabled. */
         //info("Length of command entered: %ld\n", strlen(cmd));
         /* You WILL lose points if your shell prints out garbage values. */
+
+
     }
 
     /* Don't forget to free allocated memory, and close file descriptors.
