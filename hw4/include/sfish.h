@@ -29,8 +29,17 @@ char **commonPaths;
 /*For safe wrapping around fork*/
 void unix_error(char *msg);
 pid_t Fork(void);
+
+/*Helper Methods*/
+
 int file_exist (char *filename);
 char ** getCommonPaths();
+
+/* Returns the first instance of
+ * rediection symbol in the array.
+ */
+int check_for_redirection_symbol(char **cmd, int cmdc);
+
 
 /*
 * This function is the first step of the shell
@@ -57,7 +66,7 @@ int sfish_redirection(char **cmd , int cmdc , int first , char* envp[]);
 
 
 #define HELP() do{                                                        \
-fprintf(stderr, "%s\n",                                                           \
+fprintf(stdout, "%s\n",                                                           \
 "usage: ./hw1 [-s | -t | -h]\n"                                                   \
 "    -s       Substitution cipher\n"                                              \
 "             Additional parameters: [-e | -d] n INPUT_FILE OUTPUT_FILE\n"        \

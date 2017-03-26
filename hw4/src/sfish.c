@@ -19,22 +19,19 @@ char *redirection[NUMBER_OF_REDIRECTIONS] ={
 
 int sfish_analyze(char **cmd ,int cmdc,char* envp[]){
 
+/*Method to check for Redirection symbols*/
+int symbol = check_for_redirection_symbol(cmd, cmdc);
+if (symbol > 0)
+	return sfish_redirection(cmd,cmdc ,symbol, envp);
+
 /*Loop to check for builtins first.*/
 for(int i =0;i<NUMBER_OF_BUILTINS;i++){
 	if(strcmp(cmd[0],builtins[i])==0)
 		return sfish_builtin(cmd,i);
 }
 
-/*Loop to check for Redirection symbols*/
-for (int i = 0; i < cmdc; i++)
-	for(int j =0; j<NUMBER_OF_REDIRECTIONS;j++)
-		if(strcmp(cmd[i],redirection[j])==0)
-			return sfish_redirection(cmd,cmdc ,i , envp);
-
-
 return  sfish_execute(cmd ,envp);
 }
-
 
 int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
@@ -42,38 +39,105 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	pid_t pid;
 	int status;
 
+	size_t args_size = (size_t)cmd[2] - (size_t)cmd[0];
   	pid = Fork();
 
   	if (pid == 0){
 		/*There are only 5 possible cases of redirection :*/
 
-		/*Only one possible case
+	   /* Case I
+		* Only one possible case
 		* prog1 [ARGS] > output.txt
 		*/
 		if(symbol == '>'){
 			/*Opening coppying and closing the output file*/
 			int out;
-
 			if((out = open(cmd[first+1], O_WRONLY
 				| O_TRUNC | O_CREAT, S_IRUSR |
 				S_IRGRP | S_IWGRP | S_IWUSR)) <0){
 	  				perror("open");
 					return 1;
 	  			}
-
 	  		dup2(out, 1);
-
-	  		//close(out);
-
-	  		size_t args_size = (size_t)cmd[2] - (size_t)cmd[0];
+	  		close(out);
 
         	char **args = malloc(MAX_SIZE*sizeof(char));
         	memcpy(args ,cmd,args_size);
 
-        	close(out);
-	  		sfish_execute(args,envp);
+        	/*Execute the program and exit the child & free the memory*/
+	  		sfish_analyze(args,first,envp);
+	  		if(args!=NULL)
+	  			free(args);
 
 	  		exit(0);
+		}
+		/* Case II & Case III
+		* Two possible cases
+		*/
+		else if(symbol=='<'){
+
+			int second = check_for_redirection_symbol(&(cmd[first +1]), cmdc-first-1);
+
+			/*prog1 [ARGS] < input.txt > output.txt*/
+			if(second > 0){
+				second +=first +1;
+				if(*cmd[second]== '>'){
+					/*Opening coppying and closing the output file*/
+					int out;
+					if((out = open(cmd[second+1], O_WRONLY
+						| O_TRUNC | O_CREAT, S_IRUSR |
+						S_IRGRP | S_IWGRP | S_IWUSR)) <0){
+				  		perror("open");
+						return 1;
+	  				}
+	  				int in;
+					if((in =open(cmd[first+1] , O_RDONLY))<0){
+						perror("open");
+						return 1;
+					}
+					/*Changing stdin and stdout.*/
+					dup2(in, 0);
+					dup2(out, 1);
+
+	  				close(out);
+					close(in);
+
+					char **args = malloc(MAX_SIZE*sizeof(char));
+        			memcpy(args ,cmd,args_size);
+
+        			/*Execute the program and exit the child & free the memory*/
+	  				sfish_analyze(args,first,envp);
+	  				if(args!=NULL)
+	  					free(args);
+
+	  				exit(0);
+
+				}
+				else{
+					/*To Do later*/
+				}
+			}
+			/*prog1 [ARGS] < input.txt*/
+			else{
+				int in;
+				if((in =open(cmd[first+1] , O_RDONLY))<0){
+					perror("open");
+					return 1;
+				}
+				dup2(in, 0);
+				close(in);
+
+				char **args = malloc(MAX_SIZE*sizeof(char));
+        		memcpy(args ,cmd,args_size);
+
+        		/*Execute the program and exit the child & free the memory*/
+	  			sfish_analyze(args,first,envp);
+	  			if(args!=NULL)
+	  				free(args);
+
+	  			exit(0);
+			}
+
 		}
 	}else{
 		// Parent process
@@ -95,7 +159,9 @@ int sfish_execute(char **cmd ,char* envp[]){
   	if (pid == 0){
 	    /* Child process*/
 	    /*It contains 2 types of excutable file:*/
-	    /*Type 1: contains / in beggining, has complete path*/
+	    /*Type 1: contains / in beggining, has complete path
+	     * Nothing needs to be done.
+	     */
 
   		/*Type 2: If the name of the executable does not contain a /,
 	     *search the PATH environment variable for such an executable.
@@ -140,7 +206,7 @@ return 1;
 
 int sfish_builtin(char **cmd , int mode){
 pid_t pid;
-int child_status;
+int status;
 pid = Fork();
 
 /*To perform all the cd operations*/
@@ -199,15 +265,20 @@ else if(mode==1){
 else if(mode==2){
 
 		if(pid ==0){
-			fprintf(stderr ,"%s\n",pwd);
+			printf("%s\n",pwd);
 			exit(0);
 		}
 		else{
-		wait(&child_status);
+		// Parent process
+	    	do {
+	      		waitpid(pid, &status, WUNTRACED);
+	    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
 		}
 	}
 /*Exit case*/
 else{
+		if(pid==0)
+			exit(0);
 		exit(0);
 	}
 
@@ -249,3 +320,12 @@ char ** getCommonPaths(){
     return commonPaths;
 }
 
+int check_for_redirection_symbol(char **cmd, int cmdc){
+
+/*Loop to check for Redirection symbols*/
+	for (int i = 0; i < cmdc; i++)
+		for(int j =0; j<NUMBER_OF_REDIRECTIONS;j++)
+			if(strcmp(cmd[i],redirection[j])==0)
+				return i;
+	return 0;
+}
