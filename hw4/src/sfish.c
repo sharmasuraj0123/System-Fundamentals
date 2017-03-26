@@ -39,9 +39,6 @@ return  sfish_execute(cmd ,envp);
 int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 	char symbol = *cmd[first];
-
-
-
 	pid_t pid;
 	int status;
 
@@ -54,7 +51,6 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 		* prog1 [ARGS] > output.txt
 		*/
 		if(symbol == '>'){
-
 			/*Opening coppying and closing the output file*/
 			int out;
 
@@ -64,16 +60,20 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	  				perror("open");
 					return 1;
 	  			}
+
 	  		dup2(out, 1);
-	  		/*Creating new argument array*/
-	  		char **args = malloc(MAX_SIZE*sizeof(char));
 
-	  		for (int i = 0; i < first; ++i)
-	  			strcpy(args[i] ,cmd[i]);
+	  		//close(out);
 
-	  		close(out);
+	  		size_t args_size = (size_t)cmd[2] - (size_t)cmd[0];
+
+        	char **args = malloc(MAX_SIZE*sizeof(char));
+        	memcpy(args ,cmd,args_size);
+
+        	close(out);
 	  		sfish_execute(args,envp);
 
+	  		exit(0);
 		}
 	}else{
 		// Parent process
