@@ -1,5 +1,5 @@
 #include "sfish.h"
-
+#include <signal.h>
 
 
 
@@ -7,7 +7,8 @@ char *builtins[NUMBER_OF_BUILTINS] = {
 	"cd",
 	"help",
 	"pwd",
-	"exit"
+	"exit",
+	"alarm"
 };
 
 char *redirection[NUMBER_OF_REDIRECTIONS] ={
@@ -36,7 +37,6 @@ return  sfish_execute(cmd ,envp);
 int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 	char symbol = *cmd[first];
-	pid_t pid;
 	int status;
 
 	size_t args_size = (size_t)cmd[first] - (size_t)cmd[0];
@@ -152,7 +152,6 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 			/*Only one piping command*/
 			/*prog1 [ARGS] | prog2 [ARGS]*/
 			else{
-
 				int pipe_fd[2];
 				int pipe_pid;
 
@@ -224,11 +223,19 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 int sfish_execute(char **cmd ,char* envp[]){
 
-	pid_t pid;
 	int status;
+
+	/*Blocking all the SIGCHLD*/
+	sigset_t mask, prev_mask;
+    sigemptyset(&mask);
+    //sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGCHLD);
+
+    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
 
   	pid = Fork();
   	if (pid == 0){
+  		sigprocmask(SIG_UNBLOCK, &mask, NULL);
 	    /* Child process*/
 	    /*It contains 2 types of excutable file:*/
 	    /*Type 1: contains / in beggining, has complete path
@@ -272,12 +279,13 @@ int sfish_execute(char **cmd ,char* envp[]){
     	do {
       		waitpid(pid, &status, WUNTRACED);
     	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    	sigprocmask(SIG_UNBLOCK, &mask, NULL);
   }
 return 1;
 }
 
 int sfish_builtin(char **cmd , int mode){
-pid_t pid;
+
 int status;
 pid = Fork();
 
@@ -348,13 +356,54 @@ else if(mode==2){
 		}
 	}
 /*Exit case*/
-else{
+else if(mode==3){
 		if(pid==0)
 			exit(0);
 		exit(0);
 	}
+/*Alarm Signal*/
+else{
+	if (pid==0){
+
+	Signal(SIGALRM,handler);
+	int alarm_time = atoi(cmd[1]);
+	alarm(alarm_time);
+
+	}
+	else{
+		// Parent process
+	    	do {
+	      		waitpid(pid, &status, WUNTRACED);
+	    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+		}
+
+
+}
+
 
 return 1;
+}
+
+
+void handler(int sig){
+
+	printf("Caught signal %d!\n",sig);
+
+		if (sig==SIGCHLD) {
+			printf("Child with PID %i has died. It spent %i milliseconds\n",pid,9);
+			wait(NULL);
+		}
+		else if(sig==SIGALRM){
+			fprintf(stderr,"Your 5 second timer has finished!");
+
+		}
+		else if(sig==SIGTSTP){
+			printf("Should not go here\n");
+		}
+		else if(sig==SIGUSR2){
+			fprintf(stderr,"Well that was easy.\n");
+			return;
+		}
 }
 
 
@@ -365,10 +414,10 @@ exit(0);
 }
 
 pid_t Fork(void){
-pid_t pid;
 if((pid = fork()) < 0)
 unix_error("Fork error");
 return pid;
+
 }
 
 int file_exist (char *filename)
@@ -401,3 +450,31 @@ int check_for_redirection_symbol(char **cmd, int cmdc){
 				return i;
 	return 0;
 }
+
+handler_t *Signal(int signum, handler_t *handler){
+	struct sigaction action, old_action;
+	action.sa_handler = handler;
+	sigemptyset(&action.sa_mask);
+	action.sa_flags = SA_RESTART;
+/* Block sigs of type being handled */
+/* Restart syscalls if possible */
+
+if (sigaction(signum, &action, &old_action) < 0)
+unix_error("Signal error");
+return (old_action.sa_handler);
+}
+
+void init_signals(){
+
+	if (Signal(SIGTSTP, handler) == SIG_ERR)
+        unix_error("signal error");
+
+    if (Signal(SIGCHLD, handler) == SIG_ERR)
+        unix_error("signal error");
+
+    if (Signal(SIGUSR2, handler) == SIG_ERR)
+        unix_error("signal error");
+
+}
+
+

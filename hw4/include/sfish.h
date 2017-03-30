@@ -16,8 +16,10 @@
 #include <sys/types.h>
 #include <sys/stat.h>
 
+#include <signal.h>
+
 #define MAX_SIZE 1024
-#define NUMBER_OF_BUILTINS 4
+#define NUMBER_OF_BUILTINS 5
 #define NUMBER_OF_REDIRECTIONS 3
 
 
@@ -25,21 +27,27 @@
 char pwd[MAX_SIZE];
 char prev_pwd[MAX_SIZE];
 char **commonPaths;
+pid_t pid;
 
 /*For safe wrapping around fork*/
 void unix_error(char *msg);
 pid_t Fork(void);
 
-/*Helper Methods*/
 
+/*Helper Methods*/
 int file_exist (char *filename);
 char ** getCommonPaths();
-
 /* Returns the first instance of
  * rediection symbol in the array.
  */
 int check_for_redirection_symbol(char **cmd, int cmdc);
 
+/*Methods for signals*/
+void handler(int sig);
+void init_signals();
+
+typedef void (handler_t)(int);
+handler_t *Signal(int signum, handler_t *handler);
 
 /*
 * This function is the first step of the shell

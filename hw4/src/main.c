@@ -12,6 +12,19 @@ int main(int argc, char const *argv[], char* envp[]){
     char *cmd;
     commonPaths = getCommonPaths();
 
+    printf("My pid is: %d\n", getpid());
+
+    /*For signal Handling*/
+    //struct sigaction sa;
+    sigset_t mask, prev_mask;
+    sigemptyset(&mask);
+    sigaddset(&mask, SIGTSTP);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, &prev_mask);
+
+    /*Initializing all the signals*/
+    init_signals();
+
     if(getcwd(pwd ,sizeof(pwd))==NULL)
         perror("Incorrect Path");
     char * a = malloc(sizeof(pwd));
@@ -19,9 +32,9 @@ int main(int argc, char const *argv[], char* envp[]){
     strcat(a,pwd);
     strcat(a,"> $");
 
+
     while((cmd = readline(a)) != NULL) {
 
-        /*Analyzing the shell and all this commands*/
 
         char **args = malloc(MAX_SIZE*sizeof(char));
 
@@ -30,7 +43,8 @@ int main(int argc, char const *argv[], char* envp[]){
         while(args[count++] != NULL)
             args[count]= strtok(NULL , " ");
 
-        sfish_analyze(args ,count-1,envp);
+        if(args[0]!=NULL)
+            sfish_analyze(args ,count-1,envp);
 
         if(getcwd(pwd ,sizeof(pwd))==NULL)
             perror("Incorrect Path");
@@ -43,9 +57,9 @@ int main(int argc, char const *argv[], char* envp[]){
         //info("Length of command entered: %ld\n", strlen(cmd));
         /* You WILL lose points if your shell prints out garbage values. */
 
-
     }
 
+    sigprocmask(SIG_SETMASK, &prev_mask, NULL);
     /* Don't forget to free allocated memory, and close file descriptors.
      */
     if(commonPaths!=NULL)
@@ -56,5 +70,4 @@ int main(int argc, char const *argv[], char* envp[]){
 
     return EXIT_SUCCESS;
 }
-
 
