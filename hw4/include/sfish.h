@@ -28,6 +28,8 @@ char pwd[MAX_SIZE];
 char prev_pwd[MAX_SIZE];
 char **commonPaths;
 pid_t pid;
+int alarm_time;
+char * cmd_prompt;
 
 /*For safe wrapping around fork*/
 void unix_error(char *msg);
@@ -52,7 +54,7 @@ handler_t *Signal(int signum, handler_t *handler);
 /*
 * This function is the first step of the shell
 * Where it analyzes it as built in or a program;
-* And will call teh functions appropriately.
+* And will call the functions appropriately.
 */
 int sfish_analyze(char **cmd ,int cmdc,char* envp[]);
 /*
