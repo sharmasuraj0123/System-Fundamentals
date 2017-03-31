@@ -163,16 +163,18 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	  					char **args = malloc(MAX_SIZE*sizeof(char));
 	        			memcpy(args ,cmd,args_size);
 
+	        			close(pipes[0]);
+					    close(pipes[1]);
+					    close(pipes[2]);
+					    close(pipes[3]);
+
 	        			/*Execute the program and exit the child & free the memory*/
 		  				sfish_analyze(args,first,envp);
 		  				if(args!=NULL)
 		  					free(args);
-		  				exit(0);
+		  				//exit(0);
   					}
   					else{
-  						do {
-			      		waitpid(pid, &status, WUNTRACED);
-			    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
 			    	/*Handle the case for prog2*/
 			    	if(Fork()==0){
@@ -188,17 +190,18 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 			    	//printf("%d\n",new_size);
 
-			    	char **args = malloc(MAX_SIZE*sizeof(char));
-        			memcpy(args ,&cmd[first+1],new_size);
+			    		char **args = malloc(MAX_SIZE*sizeof(char));
+        				memcpy(args ,&cmd[first+1],new_size);
+
+        				close(pipes[0]);
+					    close(pipes[1]);
+					    close(pipes[2]);
+					    close(pipes[3]);
 
 	  					sfish_analyze(args,second-first-1,envp);
 	  					exit(0);
 			    	}
 			    	else{
-			    		do {
-			      		waitpid(pid, &status, WUNTRACED);
-			    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
-
 
 			    	dup2(pipes[2], 0);
 
@@ -228,7 +231,7 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 	  				if(args!=NULL)
 	  					free(args);
-	  				exit(0);
+	  				//exit(0);
 			    	}
   				}
   			}
@@ -260,15 +263,14 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	  				sfish_analyze(args,first,envp);
 	  				if(args!=NULL)
 	  					free(args);
-
-	  				exit(0);
+	  				//exit(0);
 				}
 				else{
-					do {
-			      		waitpid(pid, &status, WUNTRACED);
-			    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+					// do {
+			  //     		waitpid(pipe_pid, &status, WUNTRACED);
+			  //   	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
-
+			    	printf("LOL2\n");
 			    	dup2(pipe_fd[0],0);
 
 					close(pipe_fd[0]);
@@ -292,13 +294,14 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 
 	  				if(args!=NULL)
 	  					free(args);
-	  				exit(0);
+	  				//exit(0);
 				}
 			}
 		}
 		else{
 			/*To do later*/
 		}
+		//exit(0);
 	}else{
 		// Parent process
     	do {
