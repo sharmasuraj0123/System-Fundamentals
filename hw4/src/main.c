@@ -14,10 +14,9 @@ int main(int argc, char const *argv[], char* envp[]){
 
     printf("My pid is: %d\n", getpid());
 
+
     /*For signal Handling*/
     //struct sigaction sa;
-
-
     /*Initializing all the signals*/
     init_signals();
     Signal(SIGTSTP,SIG_IGN);

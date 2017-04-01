@@ -40,15 +40,25 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	int status;
 
 	size_t args_size = (size_t)cmd[first] - (size_t)cmd[0];
+
+	// /*Blocking all the SIGCHLD*/
+	sigset_t mask;
+    sigemptyset(&mask);
+    //sigaddset(&mask, SIGINT);
+    sigaddset(&mask, SIGCHLD);
+    sigprocmask(SIG_BLOCK, &mask, NULL);
+
   	pid = Fork();
 
   	if (pid == 0){
+  		sigprocmask(SIG_UNBLOCK, &mask, NULL);
 		/*There are only 5 possible cases of redirection :*/
 
 	   /* Case I
 		* Only one possible case
 		* prog1 [ARGS] > output.txt
 		*/
+
 		if(symbol == '>'){
 			/*Opening coppying and closing the output file*/
 			int out;
@@ -145,99 +155,123 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 		else if(symbol == '|'){
 			int second = check_for_redirection_symbol(&(cmd[first +1]), cmdc-first-1);
 
-			Signal(SIGCHLD,SIG_IGN);
+
+			sigprocmask(SIG_BLOCK, &mask, NULL);
 			/*Multiple piping commands*/
 			/*TWo piping command*/
 			/*prog1 [ARGS] | prog2 [ARGS]*/
 			if(second > 0){
 				second +=first +1;
 				if(*cmd[second]== '|'){
-					int pipes[4];
-  					pipe(pipes);
-  					pipe(pipes + 2);
+					int pipes_1[2];
+					int pipes_2[2];
 
+
+  					pipe(pipes_2);
+  					pipe(pipes_1);
+
+  					//sigprocmask(SIG_UNBLOCK, &mask, NULL);
   					/*prog 1*/
-  					if(Fork()==0){
-  						dup2(pipes[1],1);
+  					int pipe1_pid = Fork();
+  					if(pipe1_pid==0){
+
+
+  						dup2(pipes_1[1],1);
 
 	  					char **args = malloc(MAX_SIZE*sizeof(char));
 	        			memcpy(args ,cmd,args_size);
 
-	        			close(pipes[0]);
-					    close(pipes[1]);
-					    close(pipes[2]);
-					    close(pipes[3]);
+	        			close(pipes_2[0]);
+				    	close(pipes_2[1]);
+				    	close(pipes_1[0]);
+		  				close(pipes_1[1]);
 
 	        			/*Execute the program and exit the child & free the memory*/
 		  				sfish_analyze(args,first,envp);
 		  				if(args!=NULL)
 		  					free(args);
-		  				//exit(0);
+
+		  				exit(0);
   					}
   					else{
 
-			    	/*Handle the case for prog2*/
-			    	if(Fork()==0){
-			    		dup2(pipes[0], 0);
-	  					dup2(pipes[3], 1);
+  						do {
+		      				waitpid(pipe1_pid, &status, WUNTRACED);
+		    			}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+
+				    	/*Handle the case for prog2*/
+				    	int pipe2_pid = Fork();
+				    	if(pipe2_pid==0){
+
+				    		dup2(pipes_1[0], 0);
+		  					dup2(pipes_2[1], 1);
+
+		  					int new_size = 0;
+				    		for(int i=first+1; i <second;i++){
+				    			new_size+= strlen(cmd[i]) + 1;
+				    		}
+
+				    		close(pipes_2[0]);
+				    		close(pipes_2[1]);
+				    		close(pipes_1[0]);
+		  					close(pipes_1[1]);
+
+				    		char **args = malloc(MAX_SIZE*sizeof(char));
+	        				memcpy(args ,&cmd[first+1],new_size);
+
+	        				//fprintf(stderr, "Here in 1: %s\n",args[0]);
+		  					sfish_analyze(args,second-first-1,envp);
+
+		  					exit(0);
+			    		}
+				    	else{
+				    		do {
+		      					waitpid(pipe2_pid, &status, WUNTRACED);
+		    				}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+
+		    				//fprintf(stderr, "Here in a1\n");
+				    		dup2(pipes_2[0], 0);
+
+				    		close(pipes_2[0]);
+				    		close(pipes_2[1]);
+				    		close(pipes_1[0]);
+		  					close(pipes_1[1]);
+
+					    	/*Length of each string including the \0 terminator*/
+					    	int new_size = 0;
+					    	for(int i=second+1; i <cmdc;i++){
+					    		new_size+= strlen(cmd[i]) + 1;
+					    	}
+					    	//fprintf(stderr, "Here in 2\n");
+					    	//printf("%d\n",new_size);
+
+
+					    	char **args = malloc(MAX_SIZE*sizeof(char));
+		        			memcpy(args ,&cmd[second+1],new_size);
 
 
 
-	  					int new_size = 0;
-			    	for(int i=first+1; i <second;i++){
-			    		new_size+= strlen(cmd[i]) + 1;
-			    	}
+	        			//fprintf(stderr,"%s %d\n",args[1], cmdc-second-1);
+	        			/*Closing all pipes*/
 
-			    	//printf("%d\n",new_size);
+	        			// printf("%ld\n",strlen(args[0]));
+	        			/*Execute the program and exit the child & free the memory*/
+			  				sfish_analyze(args,cmdc-second-1,envp);
 
-			    		char **args = malloc(MAX_SIZE*sizeof(char));
-        				memcpy(args ,&cmd[first+1],new_size);
+			  				if(args!=NULL)
+			  					free(args);
 
-        				close(pipes[0]);
-					    close(pipes[1]);
-					    close(pipes[2]);
-					    close(pipes[3]);
+			  				exit(0);
 
-	  					sfish_analyze(args,second-first-1,envp);
-	  					exit(0);
-			    	}
-			    	else{
-
-			    	dup2(pipes[2], 0);
-
-			    	/*Length of each string including the \0 terminator*/
-			    	int new_size = 0;
-			    	for(int i=second+1; i <cmdc;i++){
-			    		new_size+= strlen(cmd[i]) + 1;
-			    	}
-			    	fprintf(stderr, "Here in 2\n");
-			    	//printf("%d\n",new_size);
-
-			    	char **args = malloc(MAX_SIZE*sizeof(char));
-        			memcpy(args ,&cmd[second+1],new_size);
-
-        			fprintf(stderr,"%s %d\n",args[1], cmdc-second-1);
-        			/*Closing all pipes*/
-	        			close(pipes[0]);
-					    close(pipes[1]);
-					    close(pipes[2]);
-					    close(pipes[3]);
-
-
-        			 //printf("%s\n",args[0]);
-        			// printf("%ld\n",strlen(args[0]));
-        			/*Execute the program and exit the child & free the memory*/
-	  				sfish_analyze(args,cmdc-second-1,envp);
-
-	  				if(args!=NULL)
-	  					free(args);
-	  				//exit(0);
-			    	}
+				    	}
+				    		//fprintf(stderr, "HOw here\n");
+				    		exit(0);
+  					}
   				}
-  			}
-			else{
+				else{
 					/*To do later*/
-			}
+				}
 
 			}
 			/*Only one piping command*/
@@ -254,7 +288,7 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 				if(pipe_pid==0){
 
 					dup2(pipe_fd[1],1);
-					close(pipe_fd[1]);
+
 
 					char **args = malloc(MAX_SIZE*sizeof(char));
         			memcpy(args ,cmd,args_size);
@@ -263,17 +297,17 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 	  				sfish_analyze(args,first,envp);
 	  				if(args!=NULL)
 	  					free(args);
-	  				//exit(0);
+	  				exit(0);
 				}
 				else{
-					// do {
-			  //     		waitpid(pipe_pid, &status, WUNTRACED);
-			  //   	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+					do {
+		      				waitpid(pipe_pid, &status, WUNTRACED);
+		    		}while (!WIFEXITED(status) && !WIFSIGNALED(status));
 
-			    	printf("LOL2\n");
 			    	dup2(pipe_fd[0],0);
 
 					close(pipe_fd[0]);
+					close(pipe_fd[1]);
 
 			    	/*Length of each string including the \0 terminator*/
 			    	int new_size = 0;
@@ -286,29 +320,25 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 			    	char **args = malloc(MAX_SIZE*sizeof(char));
         			memcpy(args ,&cmd[first+1],new_size);
 
-        			 //printf("%s\n",args[0]);
-        			// printf("%ld\n",strlen(args[0]));
-        			/*Execute the program and exit the child & free the memory*/
-	  				//fprintf(stderr, "LOlhere: %i\n",cmdc-first-1);
 	  				sfish_analyze(args,cmdc-first-1,envp);
-
 	  				if(args!=NULL)
 	  					free(args);
-	  				//exit(0);
+
+	  				exit(0);
 				}
+
 			}
 		}
 		else{
 			/*To do later*/
 		}
-		//exit(0);
 	}else{
 		// Parent process
     	do {
       		waitpid(pid, &status, WUNTRACED);
     	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+    	sigprocmask(SIG_UNBLOCK, &mask, NULL);
 	}
-
 
 	return 1;
 }
@@ -461,23 +491,21 @@ else if(mode==3){
 /*Alarm Signal*/
 else{
 	if (pid==0){
-
 	Signal(SIGALRM,handler);
 	alarm_time = atoi(cmd[1]);
 	alarm(alarm_time);
 
+
 	}
 	else{
-		// Parent process
+		//Parent process
 	    	do {
 	      		waitpid(pid, &status, WUNTRACED);
 	    	}while (!WIFEXITED(status) && !WIFSIGNALED(status));
+	    	exit(0);
 		}
 
-
 }
-
-
 return 1;
 }
 
@@ -488,10 +516,15 @@ void handler(int sig){
 
 		if (sig==SIGCHLD) {
 			fprintf(stderr,"\nChild with PID %i has died. It spent %i milliseconds\n",pid,9);
+			/*Reaping Zombies*/
+			pid_t cpid;
+			while ((cpid = waitpid(-1, NULL, 0)) > 0)
+			fprintf(stderr,"\nChild with PID %i has died. It spent %i milliseconds\n",cpid,9);
+			if (errno != ECHILD)
+				unix_error("waitpid error");
 		}
 		else if(sig==SIGALRM){
 			fprintf(stderr,"\nYour %i second timer has finished!\n%s",alarm_time,cmd_prompt);
-
 		}
 		else if(sig==SIGTSTP){
 			fprintf(stderr,"\nShould not go here\n%s",cmd_prompt);

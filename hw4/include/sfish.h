@@ -75,29 +75,20 @@ int sfish_redirection(char **cmd , int cmdc , int first , char* envp[]);
 
 
 
-#define HELP() do{                                                        \
+#define HELP() do{                                                        		\
 fprintf(stdout, "%s\n",                                                           \
-"usage: ./hw1 [-s | -t | -h]\n"                                                   \
-"    -s       Substitution cipher\n"                                              \
-"             Additional parameters: [-e | -d] n INPUT_FILE OUTPUT_FILE\n"        \
-"                 -e           Encrypt using the substitution cipher.\n"          \
-"                 -d           Decrypt using the substitution cipher.\n"          \
-"                  n           The amount of position to shift by.\n"             \
-"                  INPUT_FILE  This can be any file on the file system or '-'\n"  \
-"                              which specifies stdin.\n"                          \
-"                  OUTPUT_FILE This can be any file on the system or '-'\n"       \
-"                              which specifies stdout.\n"                         \
-"\n"                                                                              \
-"    -t       Tutnese Translation\n"                                              \
-"             Additional parameters: [-e | -d]   INPUT_FILE OUTPUT_FILE\n"        \
-"                 -e          Encode into tutnese\n"                              \
-"                 -d          Decode from tutnese (extra credit)\n"               \
-"                 INPUT_FILE  This can be any file on the file system or '-'\n"   \
-"                             which specifies stdin\n"                            \
-"                 OUTPUT_FILE This can be any file on the system or '-'\n"        \
-"                             which specifies stdout.\n"                          \
-"\n"                                                                              \
-"    -h       Display this help menu.");                                          \
+"usage: ./hw4 Shell Sfish - Builtins\n"                                                   		\
+"	cd [-L|[-P [-e]] [-@]] [dir]       		Changes Directory\n"                          \
+"             Additional parameters: [-L|[-P [-e]] [-@]] [dir]\n"       			\
+"                 ..        Takes to directory just before.\n"          			\
+"                 .         Keeps in same Directory\n"          						\
+"                 -         Takes to previous Working directory\n"             			\
+"                 [dir]		The path of the director you want to switch to.\n"  		\
+"	alarm [n] 		Sets a timer for [n] seconds\n" 					\
+"             Additional parameters: [n]\n"        										\
+"                 [n]        Total time in seconds.\n"          						\
+"	pwd [-LP]       prints the absolute path of the current working directory\n" 		\
+"	exit [] 		exits the program\n"    											\
+"	help       Display this help menu.");                                          	\
 } while(0)
-
 #endif
