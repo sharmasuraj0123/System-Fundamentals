@@ -105,6 +105,7 @@ int sfish_redirection(char **cmd , int cmdc ,int first , char* envp[]){
 						perror("open");
 						return 1;
 					}
+
 					/*Changing stdin and stdout.*/
 					dup2(in, 0);
 					dup2(out, 1);
@@ -515,11 +516,11 @@ void handler(int sig){
 	//printf("Caught signal %d!\n",sig);
 
 		if (sig==SIGCHLD) {
-			fprintf(stderr,"\nChild with PID %i has died. It spent %i milliseconds\n",pid,9);
+			fprintf(stderr,"\nChild with PID %i has died.\n",pid);
 			/*Reaping Zombies*/
 			pid_t cpid;
 			while ((cpid = waitpid(-1, NULL, 0)) > 0)
-			fprintf(stderr,"\nChild with PID %i has died. It spent %i milliseconds\n",cpid,9);
+			fprintf(stderr,"\nChild with PID %i has died.\n",cpid);
 			if (errno != ECHILD)
 				unix_error("waitpid error");
 		}

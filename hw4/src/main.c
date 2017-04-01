@@ -12,8 +12,6 @@ int main(int argc, char const *argv[], char* envp[]){
     char *cmd;
     commonPaths = getCommonPaths();
 
-    printf("My pid is: %d\n", getpid());
-
 
     /*For signal Handling*/
     //struct sigaction sa;
