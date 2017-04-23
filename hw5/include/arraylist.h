@@ -36,4 +36,6 @@ void *remove_index_al(arraylist_t *self, size_t index);
 
 void delete_al(arraylist_t *self, void (*free_item_func)(void*));
 
+void printList(arraylist_t * self);
+
 #endif
