@@ -34,11 +34,10 @@ pool *p;
 /*Thread Handlers*/
 void *login_thread(void * vargp);
 void* communication_thread(void* vargp);
+void* broadcast_thread(void* vargp);
 
 
 bool verifyLogin(int connfd);
-void communicate(int connfd);
-
 /**/
 void init_pool(pool *p);
 
