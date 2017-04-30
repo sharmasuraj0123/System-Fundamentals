@@ -21,7 +21,6 @@ typedef struct{
     size_t item_size;
     void* base;
     /* END: .. add locks, other fields BELOW THIS COMMENT if needed .. */
-
 }arraylist_t;
 
 arraylist_t *new_al(size_t item_size);
@@ -35,7 +34,5 @@ bool remove_data_al(arraylist_t *self, void *data);
 void *remove_index_al(arraylist_t *self, size_t index);
 
 void delete_al(arraylist_t *self, void (*free_item_func)(void*));
-
-void printList(arraylist_t * self);
 
 #endif

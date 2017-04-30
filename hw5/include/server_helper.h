@@ -15,6 +15,7 @@ typedef struct{
 	int fd;
 	rio_t rio;
 	char * username;
+	bool lock;
 }client;
 
 typedef struct{
@@ -30,7 +31,9 @@ typedef struct{
 arraylist_t * login;
 arraylist_t *usernames;
 pool *p;
+bool stdin_lock;
 
+void update_max(pool *p);
 /*Thread Handlers*/
 void *login_thread(void * vargp);
 void* communication_thread(void* vargp);
@@ -40,5 +43,5 @@ void* broadcast_thread(void* vargp);
 bool verifyLogin(int connfd);
 /**/
 void init_pool(pool *p);
-
+bool valid_fd(int fd);
 #endif

@@ -15,7 +15,7 @@ int main(int argc, char *argv[]){
 	/*Initializing the arraylists*/
 	usernames = new_al(sizeof(char *));
 	login = new_al(sizeof(connfd));
-
+	printf("%d\n",getpid());
 	//users = new_al(sizeof(client));
 
 	//init_pool(p);
@@ -24,8 +24,9 @@ int main(int argc, char *argv[]){
 	p->maxi =0;
 	p->maxfd =0;
 	FD_ZERO(&p->read_set);
+	FD_SET(STDIN_FILENO,&p->read_set);
 	p->users= new_al(sizeof(client));
-
+	stdin_lock = false;
 
 	listenfd = Open_listenfd(PORT);
 
@@ -40,7 +41,7 @@ int main(int argc, char *argv[]){
 		clientlen = sizeof(struct sockaddr_storage);
 		connfd = malloc(sizeof(int *));
 		*connfd = Accept(listenfd, (SA *)&clientaddr, &clientlen);
-		printf("Request from %d\n",*connfd);
+		//printf("Request from %d\n",*connfd);
 		insert_al(login,connfd);
 		}
 }

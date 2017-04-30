@@ -98,7 +98,7 @@ size_t get_data_al(arraylist_t *self, void *data){
 
 void *get_index_al(arraylist_t *self, size_t index){
 
-    if(self ==NULL){
+    if(self ==NULL || self->length==0){
         errno =EINVAL;
         return NULL;
     }
@@ -134,6 +134,8 @@ bool remove_data_al(arraylist_t *self, void *data){
 void *remove_index_al(arraylist_t *self, size_t index){
 
     void *data = get_index_al(self,index);
+    if(data==NULL)
+        return NULL;
     void * new_data = malloc(self->item_size);
     memcpy(new_data,data,self->item_size);
 

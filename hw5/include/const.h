@@ -16,5 +16,7 @@
 #define GSM "GSM "
 #define OHW "OHW "
 #define COLON ":"
-
+#define SERVER "SERVER"
+#define NEWLINE "\r\n"
+#define SPACE " "
 #endif

@@ -9,9 +9,9 @@ while(1){
 	if(connfd!=NULL)
 		if(verifyLogin(*connfd)){
 			//communicate(*connfd);
-			client *testClient = get_index_al(p->users,0);
-			printf("%s\n",testClient->username);
-			printf("%d\n",testClient->fd);
+			//client *testClient = get_index_al(p->users,0);
+			//printf("%s\n",testClient->username);
+			//printf("%d\n",testClient->fd);
 		}
 }
 }
@@ -22,20 +22,46 @@ void* communication_thread(void* vargp){
 
 	while(1){
 
-		if(p->maxi!=0){
+		client *active = malloc(sizeof(client));
+
+		/*Check for disconnected clients*/
+		for(int i=0; i<p->users->length;i++){
+
+			active = get_index_al(p->users,i);
+			/*Check Whether User is still connected*/
+			if(!valid_fd(active->fd)){
+				printf("YES IT GOES\n");
+				remove_index_al(p->users, i);
+				remove_index_al(usernames,i);
+				FD_CLR(active->fd,&p->read_set);
+				update_max(p);
+				/*Free the memory*/
+
+			}
+		}
+
+		if(p->users->length !=0){
 			int i;
-			client *active = malloc(sizeof(client));
 			p->ready_set = p->read_set;
 			p->nready = Select(p->maxfd+1,&p->ready_set,NULL,NULL,NULL);
+
+			/*Check for STDIN in server*/
+			if(FD_ISSET(STDIN_FILENO,&p->ready_set) && p->nready>0){
+				//printf("HELLO\n");
+				pthread_t tid;
+				Pthread_create(&tid,NULL,broadcast_thread,NULL);
+				p->nready--;
+			}
 
 			for(i=0; i<p->users->length;i++){
 				active = get_index_al(p->users,i);
 
-				if(FD_ISSET(active->fd,&p->ready_set)){
-				printf("%s\n",active->username);
-				printf("%d\n",p->nready);
-				pthread_t tid;
-				Pthread_create(&tid,NULL,broadcast_thread,active);
+				if(FD_ISSET(active->fd,&p->ready_set) && !active->lock){
+					//printf("User :%s : %i\n",active->username,active->fd);
+					pthread_t tid;
+					//printf("WORKS\n");
+					Pthread_create(&tid,NULL,broadcast_thread,active);
+					p->nready--;
 				}
 			}
 		}
@@ -44,20 +70,78 @@ void* communication_thread(void* vargp){
 }
 
 void* broadcast_thread(void* vargp){
-	Pthread_detach(pthread_self());
 
-	while(1){
+	//Pthread_detach(pthread_self());
+	//while(1){
+	char buf[MAXLINE];
+	int read_size;
+	char buf2[MAXLINE];
+
+	/*For Server Commands*/
+	if(vargp==NULL){
+
+		if(stdin_lock){
+			Pthread_exit(0);
+			return NULL;
+		}
+
+		rio_t stdin_rio;
+		stdin_lock = true;
+		Rio_readinitb(&stdin_rio,STDIN_FILENO);
+		read_size =Rio_readlineb(&stdin_rio,buf,MAXLINE);
+
+		if(strncmp(buf,MSG,4)==0){
+			for(int i=0; i<p->users->length;i++){
+				char *data = &buf[4];
+				client *all_client = get_index_al(p->users,i);
+				/*The Message Sent to all users*/
+				Rio_writen(all_client->fd,MSG,sizeof(MSG));
+				Rio_writen(all_client->fd,SERVER,strlen(SERVER));
+				Rio_writen(all_client->fd,COLON,sizeof(COLON));
+				Rio_writen(all_client->fd,data,sizeof(data));
+			}
+		}
+		else if(strcmp(buf,"WHO\n")==0){
+			for(int i=0; i<p->users->length;i++){
+					client *all_client = get_index_al(p->users,i);
+
+					/*To extract actual name & fd*/
+					char nameofClient[MAXLINE];
+					strncpy(nameofClient,all_client->username,strlen(all_client->username)-2);
+					/*Printing to stdout*/
+					Rio_writen(STDOUT_FILENO,nameofClient,sizeof(nameofClient));
+					Rio_writen(STDOUT_FILENO,SPACE,sizeof(SPACE));
+					Rio_writen(STDOUT_FILENO,COLON,sizeof(COLON));
+					Rio_writen(STDOUT_FILENO,SPACE,sizeof(SPACE));
+					fprintf(stdout, "%i\n",all_client->fd);
+					Rio_writen(STDOUT_FILENO,NEWLINE,sizeof(NEWLINE));
+				}
+		}
+		else{
+			/*Not Specified*/
+			//printf("SHOULD NOT GO HERE1\n");
+		}
+		stdin_lock = false;
+		Pthread_exit(0);
+		return NULL;
+	}
+
 		client* active = (client *) vargp;
-		char buf[MAXLINE];
-		int read_size;
-		char buf2[MAXLINE];
+		if(active->lock){
+			//printf("HUH!\n");
+			Pthread_exit(0);
+			return NULL;
+		}
 
+		/*Locking before Execution*/
+		active->lock = true;
 		if((read_size =Rio_readlineb(&active->rio,buf,MAXLINE))!=0){
 			read_size = Rio_readlineb(&active->rio,buf2,MAXLINE);
 
 			if(strncmp(buf,MSG,4)==0){
 				char *data = &buf[4];
 				size_t active_index = get_data_al(usernames,active->username);
+
 				/*To extract actual name*/
 				char nameofClient[MAXLINE];
 				strncpy(nameofClient,active->username,strlen(active->username)-2);
@@ -67,7 +151,6 @@ void* broadcast_thread(void* vargp){
 					if(i!=active_index){
 						/*The Message Sent to all other users*/
 						Rio_writen(all_client->fd,MSG,sizeof(MSG));
-
 						Rio_writen(all_client->fd,nameofClient,strlen(nameofClient));
 						Rio_writen(all_client->fd,COLON,sizeof(COLON));
 						Rio_writen(all_client->fd,data,sizeof(data));
@@ -75,8 +158,8 @@ void* broadcast_thread(void* vargp){
 				}
 
 				/*Message Sent to current User After Completion*/
-				Rio_writen(active->fd,GSM,sizeof(GSM));
-				Rio_writen(active->fd,data,sizeof(data));
+					Rio_writen(active->fd,GSM,sizeof(GSM));
+					Rio_writen(active->fd,data,sizeof(data));
 
 			}
 			else if(strcmp(buf,WHO)==0){
@@ -88,11 +171,21 @@ void* broadcast_thread(void* vargp){
 			}
 			else{
 				/*Not specified*/
+				//printf("SHOULD NOT GO HERE\n");
 			}
-			Pthread_exit(0);
-		}
+			/*For unlocking again after execution*/
+			active->lock = false;
 
-	}
+		}else{
+			printf("SHOULD NOT GO HERE\n");
+			Close(active->fd);
+		}
+		//Free(active);
+		printf("WHEN ITS HERE!!\n");
+		Pthread_exit(0);
+		//printf("Something is wrong!!!\n");
+		return NULL;
+	//}
 
 }
 
@@ -109,7 +202,7 @@ bool verifyLogin(int connfd){
 	while((read_size =Rio_readlineb(&rio,buf,MAXLINE))!=0){
 
 		/*For the second newLine char*/
-		read_size = Rio_readlineb(&rio,buf2,MAXLINE);
+		Rio_readlineb(&rio,buf2,MAXLINE);
 		/*Recieve Welcome*/
 		if(strcmp(buf,ALOLA)==0 && !welcome){
 			/*Send the Response Back*/
@@ -135,7 +228,9 @@ bool verifyLogin(int connfd){
 			client *newClient = malloc(sizeof(client));
 			newClient->rio = rio;
 			newClient->fd =connfd;
-			newClient->username = username;
+			newClient->lock =false;
+			newClient->username = malloc(sizeof(username));
+			strncpy(newClient->username,username,read_size-4);
 
 			insert_al(p->users, newClient);
 			FD_SET(connfd,&(p->read_set));
@@ -143,7 +238,7 @@ bool verifyLogin(int connfd){
 				p->maxfd = connfd;
 			p->maxi++;
 
-			printf("LOL\n");
+			//printf("LOL\n");
 			return true;
 		}
 		else{
@@ -160,9 +255,23 @@ void init_pool(pool *p){
 	p->maxi =0;
 	p->maxfd =0;
 	FD_ZERO(&p->read_set);
+	FD_SET(STDIN_FILENO,&p->read_set);
 	p->users= new_al(sizeof(client));
 }
 
+bool valid_fd(int fd){
+	 return fcntl(fd, F_GETFD) != -1 && errno != EBADF;
+}
 
+void update_max(pool *p){
+	client * update = get_index_al(p->users,0);
+	p->maxfd = update->fd;
 
+	for (int i = 0; i < p->users->length; i++)
+	{
+		update = get_index_al(p->users,0);
+		if(p->maxfd < update->fd)
+			p->maxfd = update->fd;
+	}
+}
 
