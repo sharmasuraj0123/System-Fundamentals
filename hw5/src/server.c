@@ -11,13 +11,15 @@ int main(int argc, char *argv[]){
 	struct sockaddr clientaddr;
 	pthread_t tid;
 
-	int n = 1;
+	int n = atoi(argv[1]);
+
 	/*Initializing the arraylists*/
 	usernames = new_al(sizeof(char *));
 	login = new_al(sizeof(connfd));
-	printf("%d\n",getpid());
+	//printf("%d\n",getpid());
 	//users = new_al(sizeof(client));
-
+	 Signal(SIGPIPE,SIG_IGN);
+	 //Signal(SIGINT,handler);
 	//init_pool(p);
 
 	p = malloc(sizeof(pool));
@@ -28,7 +30,9 @@ int main(int argc, char *argv[]){
 	p->users= new_al(sizeof(client));
 	stdin_lock = false;
 
-	listenfd = Open_listenfd(PORT);
+	char port_string[15];
+	sprintf(port_string,"%d",PORT);
+	listenfd = Open_listenfd(port_string);
 
 	/*Creating login threads based on n*/
 	for(int i =0; i< n; i++)

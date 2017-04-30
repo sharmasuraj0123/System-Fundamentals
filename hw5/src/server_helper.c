@@ -21,32 +21,38 @@ void* communication_thread(void* vargp){
 	Pthread_detach(pthread_self());
 
 	while(1){
-
-		client *active = malloc(sizeof(client));
-
-		/*Check for disconnected clients*/
-		for(int i=0; i<p->users->length;i++){
-
-			active = get_index_al(p->users,i);
-			/*Check Whether User is still connected*/
-			if(!valid_fd(active->fd)){
-				printf("YES IT GOES\n");
-				remove_index_al(p->users, i);
-				remove_index_al(usernames,i);
-				FD_CLR(active->fd,&p->read_set);
-				update_max(p);
-				/*Free the memory*/
-
-			}
-		}
-
 		if(p->users->length !=0){
-			int i;
-			p->ready_set = p->read_set;
-			p->nready = Select(p->maxfd+1,&p->ready_set,NULL,NULL,NULL);
+			client *active = malloc(sizeof(client));
+			/*Check for disconnected clients*/
 
+			// for(int i=0; i<p->users->length;i++){
+			// 	active = get_index_al(p->users,i);
+			// 	/*Check Whether User is still connected*/
+			// 	/*Just to confirm again*/
+			// 	if(!valid_fd(active->fd)){
+			// 			printf("YES IT GOES\n");
+			// 			// FD_CLR(active->fd,&p->read_set);
+			// 			// remove_index_al(p->users, i);
+			// 			// remove_index_al(usernames,i);
+			// 			// update_max(p);
+			// 			// printf("%i\n",p->maxfd);
+			// 			continue;
+			// 			/*Free the memory*/
+			// 	}
+			// }
+			int i;
+			struct timeval timeout;
+
+			timeout.tv_sec =1;
+			timeout.tv_usec= 0;
+
+			p->ready_set = p->read_set;
+			p->nready = Select(p->maxfd+1,&p->ready_set,NULL,NULL,&timeout);
+
+		if(p->nready>0){
+			//printf("number ready: %d\n",p->nready);
 			/*Check for STDIN in server*/
-			if(FD_ISSET(STDIN_FILENO,&p->ready_set) && p->nready>0){
+			if(FD_ISSET(STDIN_FILENO,&p->ready_set) && !stdin_lock){
 				//printf("HELLO\n");
 				pthread_t tid;
 				Pthread_create(&tid,NULL,broadcast_thread,NULL);
@@ -54,16 +60,18 @@ void* communication_thread(void* vargp){
 			}
 
 			for(i=0; i<p->users->length;i++){
-				active = get_index_al(p->users,i);
+				active = get_index_al_2(p->users,i);
 
 				if(FD_ISSET(active->fd,&p->ready_set) && !active->lock){
 					//printf("User :%s : %i\n",active->username,active->fd);
 					pthread_t tid;
-					//printf("WORKS\n");
 					Pthread_create(&tid,NULL,broadcast_thread,active);
 					p->nready--;
 				}
 			}
+
+		}
+
 		}
 
 	}
@@ -104,9 +112,8 @@ void* broadcast_thread(void* vargp){
 		else if(strcmp(buf,"WHO\n")==0){
 			for(int i=0; i<p->users->length;i++){
 					client *all_client = get_index_al(p->users,i);
-
 					/*To extract actual name & fd*/
-					char nameofClient[MAXLINE];
+					char * nameofClient = malloc(sizeof(all_client->username));
 					strncpy(nameofClient,all_client->username,strlen(all_client->username)-2);
 					/*Printing to stdout*/
 					Rio_writen(STDOUT_FILENO,nameofClient,sizeof(nameofClient));
@@ -115,6 +122,7 @@ void* broadcast_thread(void* vargp){
 					Rio_writen(STDOUT_FILENO,SPACE,sizeof(SPACE));
 					fprintf(stdout, "%i\n",all_client->fd);
 					Rio_writen(STDOUT_FILENO,NEWLINE,sizeof(NEWLINE));
+					Free(nameofClient);
 				}
 		}
 		else{
@@ -132,7 +140,6 @@ void* broadcast_thread(void* vargp){
 			Pthread_exit(0);
 			return NULL;
 		}
-
 		/*Locking before Execution*/
 		active->lock = true;
 		if((read_size =Rio_readlineb(&active->rio,buf,MAXLINE))!=0){
@@ -154,12 +161,13 @@ void* broadcast_thread(void* vargp){
 						Rio_writen(all_client->fd,nameofClient,strlen(nameofClient));
 						Rio_writen(all_client->fd,COLON,sizeof(COLON));
 						Rio_writen(all_client->fd,data,sizeof(data));
+						Rio_writen(all_client->fd,NEWLINE,sizeof(NEWLINE));
 					}
 				}
-
 				/*Message Sent to current User After Completion*/
 					Rio_writen(active->fd,GSM,sizeof(GSM));
 					Rio_writen(active->fd,data,sizeof(data));
+					Rio_writen(active->fd,NEWLINE,sizeof(NEWLINE));
 
 			}
 			else if(strcmp(buf,WHO)==0){
@@ -177,11 +185,22 @@ void* broadcast_thread(void* vargp){
 			active->lock = false;
 
 		}else{
-			printf("SHOULD NOT GO HERE\n");
+
+			/*Client is no longer responsive*/
+			/*So removing him*/
+			// printf("SHOULD NOT GO HERE\n");
+			// printf("afd :%i\n",active->fd);
+			int client_number;
+			client_number = get_data_al(p->users, active);
+			FD_CLR(active->fd,&p->read_set);
 			Close(active->fd);
+			remove_index_al(usernames,client_number);
+			remove_index_al(p->users,client_number);
+			update_max(p);
+			//printf("nafd \n");
 		}
 		//Free(active);
-		printf("WHEN ITS HERE!!\n");
+		//printf("WHEN ITS HERE!!\n");
 		Pthread_exit(0);
 		//printf("Something is wrong!!!\n");
 		return NULL;
@@ -230,14 +249,13 @@ bool verifyLogin(int connfd){
 			newClient->fd =connfd;
 			newClient->lock =false;
 			newClient->username = malloc(sizeof(username));
-			strncpy(newClient->username,username,read_size-4);
+			strcpy(newClient->username,username);
 
 			insert_al(p->users, newClient);
 			FD_SET(connfd,&(p->read_set));
 			if(connfd > p->maxfd)
 				p->maxfd = connfd;
 			p->maxi++;
-
 			//printf("LOL\n");
 			return true;
 		}
@@ -264,6 +282,11 @@ bool valid_fd(int fd){
 }
 
 void update_max(pool *p){
+
+	if(p->users->length==0){
+		p->maxfd = 0;
+		return;
+	}
 	client * update = get_index_al(p->users,0);
 	p->maxfd = update->fd;
 
@@ -275,3 +298,6 @@ void update_max(pool *p){
 	}
 }
 
+void handler(int sig){
+
+}

@@ -93,6 +93,17 @@ Test(al_suite, 2_insertion, .timeout=2, .init=setup, .fini=teardown){
     newStudent->id = 3;
     insert_al(locallist,newStudent);
 
+    newStudent->name = "TEST";
+
+
+    testStudent = get_index_al(locallist,0);
+    cr_assert(!compareStudents(testStudent,newStudent),"Student1 is same");
+    newStudent->name ="Yello";
+    testStudent->name = "TESTS";
+
+    newStudent2 = get_index_al(locallist,0);
+    //printf("%s\n",newStudent2->name);
+
     /*Test for just one student*/
     newStudent2->name ="Yello2";
     newStudent2->gpa = 3.2;
@@ -100,16 +111,16 @@ Test(al_suite, 2_insertion, .timeout=2, .init=setup, .fini=teardown){
 
     insert_al(locallist,newStudent2);
 
-
     newStudent3->name ="Yello3";
     newStudent3->gpa = 3.3;
     newStudent3->id = 33;
     insert_al(locallist,newStudent3);
 
+
     /*Test with student3 for getting from data*/
     size_t index = get_data_al(locallist,newStudent);
     cr_assert(index==0,"Index should be 0");
-     index = get_data_al(locallist,newStudent2);
+    index = get_data_al(locallist,newStudent2);
     cr_assert(index==1,"Index should be 1");
     index = get_data_al(locallist,newStudent3);
     cr_assert(index==2,"Index should be 2");
@@ -168,6 +179,7 @@ Test(al_suite, 3_removal, .timeout=2, .init=setup, .fini=teardown){
     /*Test for remove from data*/
     cr_assert(remove_data_al(locallist,newStudent),"Item wasn't removed");
     cr_assert(locallist->length==3,"length is incorrect! not 3");
+
     testStudent = (student_t *) get_index_al(locallist,0);
     cr_assert(compareStudents(testStudent,newStudent2),"Student2 is not moved");
     testStudent = (student_t *) get_index_al(locallist,1);
@@ -175,8 +187,14 @@ Test(al_suite, 3_removal, .timeout=2, .init=setup, .fini=teardown){
     testStudent = (student_t *) get_index_al(locallist,2);
     cr_assert(compareStudents(testStudent,newStudent4),"Student4 is not moved");
 
+    remove_data_al(locallist,newStudent3);
+    remove_data_al(locallist,newStudent2);
+    remove_data_al(locallist,newStudent4);
 
-
+    testStudent = get_index_al(locallist,3);
+    //printf("%s\n", testStudent->name);
+    if(testStudent!=NULL)
+    printf("%s\n",testStudent->name);
 
    // // cr_assert(remove_data_al(locallist,newStudent),"Item wasn't removed");
    //  cr_assert(locallist->length==1,"length is incorrect! not 1");
@@ -216,6 +234,11 @@ Test(al_suite, index_removal, .timeout=2, .init=setup, .fini=teardown){
     testStudent = remove_index_al(locallist,0);
     cr_assert(locallist->length==2,"length is incorrect! not 2");
     cr_assert(compareStudents(testStudent,newStudent),"Student is not correct");
+
+    testStudent->name = "TEST";
+    testStudent = get_index_al(locallist,0);
+    //cr_assert(locallist->length==2,"A copy is not returned");
+
     testStudent = (student_t *) get_index_al(locallist,0);
     cr_assert(compareStudents(testStudent,newStudent2),"Student2 is not moved");
     testStudent = (student_t *) get_index_al(locallist,1);

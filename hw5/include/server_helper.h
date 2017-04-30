@@ -10,6 +10,20 @@
 #include "sys/socket.h"
 #include "csapp.h"
 
+#define ALOLA "ALOLA!\r\n"
+#define IAM "IAM "
+#define CORRECT "!ALOLA \r\n\r\n"
+#define ETAKEN "ETAKEN "
+#define MAI "MAI "
+#define EOL "\r\n\r\n"
+#define WHO "WHO\r\n"
+#define MSG "MSG "
+#define GSM "GSM "
+#define OHW "OHW "
+#define COLON ":"
+#define SERVER "SERVER"
+#define NEWLINE "\r\n"
+#define SPACE " "
 
 typedef struct{
 	int fd;
@@ -44,4 +58,5 @@ bool verifyLogin(int connfd);
 /**/
 void init_pool(pool *p);
 bool valid_fd(int fd);
+void handler(int sig);
 #endif
