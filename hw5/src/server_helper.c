@@ -135,7 +135,7 @@ void* broadcast_thread(void* vargp){
 	}
 
 		client* active = (client *) vargp;
-		if(active->lock){
+		if(active->lock || active->fd == -100){
 			//printf("HUH!\n");
 			Pthread_exit(0);
 			return NULL;
@@ -176,6 +176,7 @@ void* broadcast_thread(void* vargp){
 					char * name = get_index_al(usernames,i);
 					Rio_writen(active->fd,name,sizeof(name));
 				}
+					Rio_writen(active->fd,NEWLINE,sizeof(NEWLINE));
 			}
 			else{
 				/*Not specified*/
@@ -196,6 +197,7 @@ void* broadcast_thread(void* vargp){
 			Close(active->fd);
 			remove_index_al(usernames,client_number);
 			remove_index_al(p->users,client_number);
+			//active->fd = -100;
 			update_max(p);
 			//printf("nafd \n");
 		}

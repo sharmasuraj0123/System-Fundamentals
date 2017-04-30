@@ -21,6 +21,7 @@ typedef struct{
     size_t item_size;
     void* base;
     /* END: .. add locks, other fields BELOW THIS COMMENT if needed .. */
+    bool lock;
 }arraylist_t;
 
 arraylist_t *new_al(size_t item_size);
@@ -29,6 +30,7 @@ size_t insert_al(arraylist_t *self, void* data);
 
 size_t get_data_al(arraylist_t *self, void* data);
 void *get_index_al(arraylist_t *self, size_t index);
+void *get_index_al_2(arraylist_t *self, size_t index);
 
 bool remove_data_al(arraylist_t *self, void *data);
 void *remove_index_al(arraylist_t *self, size_t index);
