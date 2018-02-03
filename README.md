@@ -9,10 +9,13 @@ HW1 Substitution Cipher & Tutnese Encryption.
 •	Created an Susbstution Cipher and Tutnese description using just pointer arithmetic. The entire purpose of this assignment was to get aqauinted
 to pointers in C.
 
+
+
 HW2 - Spell Checker.
 
 •	A parser that will fix all the mispelled words and return the text with correct spellings. 
 •	Created a dictionary that will store all the words and 5 possible misspellings.
+
 
 
 HW3 Dynamic Memory Allocator.
@@ -20,10 +23,14 @@ HW3 Dynamic Memory Allocator.
 •	Implemented a dynamic memory allocator (malloc, free and realloc), utilizing the concepts of coalescing and explicit free list. 
 
 
+
+
 HW4 Shell
 
 •	Implemented a bash-like shell that supports job control, I/O redirection and basic shell features using signal handling, file descriptors, etc.
 •	Shell used multi-process approach to handle piping and job control requests
+
+
 
 
 HW5 Group Chat Application (Multi-threaded Server).
